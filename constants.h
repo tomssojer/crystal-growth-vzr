@@ -1,5 +1,10 @@
+// number of rows
 #define ROWS 6
+
+// number of columns
 #define COLUMNS 6
+
+// number of neighbors
 #define NUM_NEIGHBORS 6
 
 // vapour addition

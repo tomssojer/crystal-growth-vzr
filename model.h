@@ -16,7 +16,7 @@ typedef struct Cell
 
     // Neighbours of the cell [6][2] - [[x1][y1], ...]
     int **neighbors;
-}Cell;
+} Cell;
 
 double initialize_state(int type)
 {
@@ -30,8 +30,7 @@ double initialize_state(int type)
     return state;
 }
 
-
-double change_state(int type, double state, double average) //pohitritev aplha pre defined
+double change_state(int type, double state, double average) // pohitritev aplha pre defined
 {
     state = state + ALPHA / 2 * (average - state);
 
@@ -41,9 +40,10 @@ double change_state(int type, double state, double average) //pohitritev aplha p
     return state;
 }
 
-double get_state(struct Cell cells) //pohitritev aplha pre defined
+double get_state(struct Cell cells) // pohitritev aplha pre defined
 {
-    return cells.state;;
+    return cells.state;
+    ;
 }
 
 /*double get_state(int pos_x, int pos_y)
@@ -56,15 +56,16 @@ double get_state(struct Cell cells) //pohitritev aplha pre defined
     return state;
 }*/
 
-double average_state(int **neighbors, struct Cell *cells) //dobi cel seznam
+double average_state(int **neighbors, struct Cell *cells) // dobi cel seznam
 {
     double average = 0;
-    for (int i = 0; i < NUM_NEIGHBORS;  i++) {
-        int x=neighbors[i][0];
-        int y=neighbors[i][1];
-        int pos= x*COLUMNS+y;
+    for (int i = 0; i < NUM_NEIGHBORS; i++)
+    {
+        int x = neighbors[i][0];
+        int y = neighbors[i][1];
+        int pos = x * COLUMNS + y;
         average += cells[pos].state;
-        //average += get_state(cells, neighbors[i][0], neighbors[i][1]);
+        // average += get_state(cells, neighbors[i][0], neighbors[i][1]);
     }
 
     average /= NUM_NEIGHBORS;
