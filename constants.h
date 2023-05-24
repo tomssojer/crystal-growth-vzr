@@ -1,5 +1,6 @@
 #define ROWS 6
 #define COLUMNS 6
+#define NUM_NEIGHBORS 6
 
 // vapour addition
 #define ALPHA 0.5
