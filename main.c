@@ -68,7 +68,10 @@ void neighbours(Cell *cells)
 
     for (int i = 0; i < vrstice; i++)
     {
-        for (int j = COLUMNS - i - 1; j < stolpci - i; j += 2)
+        // Definicija ničelnih elementov v heksagonalni strukturi
+        int null_elements = COLUMNS - i - 1;
+
+        for (int j = null_elements; j < stolpci - i; j += 2)
         {
             // Nastavimo dummy vrednosti v array
             for (int k = 0; k < NUM_NEIGHBORS; k++)
@@ -78,19 +81,27 @@ void neighbours(Cell *cells)
                 mapped_sosede[k] = -99;
             }
 
-            // Pridobi indeks vsake celice v vrstici heksagona z indeksom j
-            int mapJ = (j - COLUMNS + i + 1) / 2 - 1;
+            // Indeks zgornje LEVE celice -> ((trenutna celica - 1) - (št null elementov v zgornji)) / normaliziraj z 2
+            int map_top = ((j - 1) - (null_elements + 1)) / 2;
 
+            // Indeks DESNE celice -> (razlika med trenutno in null elementi) / 2 + shiftaj v desno
+            int map_current = (j - null_elements) / 2 + 1;
+
+            // Indeks spodnje LEVE celice -> ((trenutna celica - 1) - (št null elementov v spodnji)) / normaliziraj z 2
+            int map_bottom = ((j - 1) - (null_elements - 1)) / 2;
+
+            /////////////////
             // Zgornje sosede
+            /////////////////
+
             if (i - 1 >= 0)
             {
-                int mapZG = (j - COLUMNS + (i - 1) + 1) / 2;
                 // Zgornja leva
                 if (j - 1 >= 0 && j != COLUMNS - i - 1)
                 {
                     sosede[0][0] = j - 1;
                     sosede[0][1] = i - 1;
-                    mapped_sosede[0] = (i - 1) * COLUMNS + mapZG;
+                    mapped_sosede[0] = (i - 1) * COLUMNS + map_top;
                 }
                 else
                 {
@@ -103,7 +114,7 @@ void neighbours(Cell *cells)
                 {
                     sosede[1][0] = j + 1;
                     sosede[1][1] = i - 1;
-                    mapped_sosede[1] = (i - 1) * COLUMNS + mapZG;
+                    mapped_sosede[1] = (i - 1) * COLUMNS + map_top + 1;
                 }
                 else
                 {
@@ -120,13 +131,16 @@ void neighbours(Cell *cells)
                 sosede[1][1] = -1;
             }
 
+            ////////////////////////
             // Sosede v isti vrstici
+            ////////////////////////
+
             // Leva
             if (j - 2 >= 0 && j != COLUMNS - i - 1)
             {
                 sosede[2][0] = j - 2;
                 sosede[2][1] = i;
-                mapped_sosede[2] = i * COLUMNS + mapJ - 2;
+                mapped_sosede[2] = i * COLUMNS + map_current - 2;
             }
             else
             {
@@ -135,11 +149,11 @@ void neighbours(Cell *cells)
             }
 
             // Desna
-            if (j + 2 < stolpci && j != stolpci - i)
+            if (j + 2 < stolpci - i && j != stolpci - i)
             {
                 sosede[3][0] = j + 2;
                 sosede[3][1] = i;
-                mapped_sosede[3] = i * COLUMNS + mapJ;
+                mapped_sosede[3] = i * COLUMNS + map_current;
             }
             else
             {
@@ -147,16 +161,18 @@ void neighbours(Cell *cells)
                 sosede[3][1] = -1;
             }
 
+            /////////////////
             // Spodnje sosede
+            /////////////////
+
             if (i + 1 < vrstice && j != COLUMNS - i - 1)
             {
-                int mapSP = (j - COLUMNS + (i + 1) + 1) / 2;
                 // Spodnja leva
                 if (j - 1 >= 0)
                 {
                     sosede[4][0] = j - 1;
                     sosede[4][1] = i + 1;
-                    mapped_sosede[4] = (i + 1) * COLUMNS + mapSP;
+                    mapped_sosede[4] = (i + 1) * COLUMNS + map_bottom;
                 }
                 else
                 {
@@ -169,7 +185,7 @@ void neighbours(Cell *cells)
                 {
                     sosede[5][0] = j + 1;
                     sosede[5][1] = i + 1;
-                    mapped_sosede[5] = (i + 1) * COLUMNS + mapSP + 1;
+                    mapped_sosede[5] = (i + 1) * COLUMNS + map_bottom + 1;
                 }
                 else
                 {
@@ -197,7 +213,7 @@ void neighbours(Cell *cells)
     }
 
     // Free memory
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < NUM_NEIGHBORS; i++)
     {
         free(sosede[i]);
     }
