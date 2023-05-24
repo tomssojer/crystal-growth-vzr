@@ -4,8 +4,8 @@
 typedef struct Cell
 {
     // Hexagon indexes in array of structs
-    int i;
-    int j;
+    int pos_x;
+    int pos_y;
 
     // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
     int type;

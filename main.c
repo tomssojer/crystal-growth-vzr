@@ -42,7 +42,7 @@ void printTab(int **tab, int j, int mappIdx)
     }
 }
 
-void printmaped(int **tab, int j, int x, int *mapp)
+void printmapped(int **tab, int j, int x, int *mapp)
 {
     for (int i = 0; i < 6; i++)
     {
@@ -52,149 +52,164 @@ void printmaped(int **tab, int j, int x, int *mapp)
 
 void neighbours(Cell *cells)
 {
-    // printf("dela");
     //  sosede velikosti 6 sosed -2(x,y) ;
     //  index 0 ZGORAJ LEVO index 1 ZGORAJ DESNO | Y-1, X-1 X+1
     //  index 0        LEVO index 1        DESNO | Y  , X-2 X+2
     //  index 0 SPODAJ LEVO index 5 SPODAJ DESNO | Y+1, X-1 X+1
-    int **sosede = (int **)malloc(6 * sizeof(int *));    // indeks 0 <- y-1,x-1 ; 1 <- y-1, x+1
-    int *mapped_sosede = (int *)malloc(6 * sizeof(int)); // indeks 0 <- y-1,x-1 ; 1 <- y-1, x+1
-    for (int i = 0; i < 6; i++)
-    {
+
+    int **sosede = (int **)malloc(NUM_NEIGHBORS * sizeof(int *));    // indeks 0 <- y-1,x-1 ; 1 <- y-1, x+1
+    int *mapped_sosede = (int *)malloc(NUM_NEIGHBORS * sizeof(int)); // indeks 0 <- y-1,x-1 ; 1 <- y-1, x+1
+
+    for (int i = 0; i < NUM_NEIGHBORS; i++)
         sosede[i] = (int *)malloc(2 * sizeof(int));
-        mapped_sosede[i] = -99;
-        sosede[i][0] = -2;
-        sosede[i][1] = -2;
-    }
-    int index = 0;
+
     int vrstice = ROWS;
     int stolpci = COLUMNS * 3 - 2;
+
     for (int i = 0; i < vrstice; i++)
     {
         for (int j = COLUMNS - i - 1; j < stolpci - i; j += 2)
         {
-            // printf("%c ",plosca[i][j]);
-            int mappJ = (j - COLUMNS + i + 1) / 2 - 1; //=i*COLUMNS+(j-COLUMNS+i+1)/2;
-            // if(plosca[i][j]=='*') {
+            // Nastavimo dummy vrednosti v array
+            for (int k = 0; k < NUM_NEIGHBORS; k++)
+            {
+                sosede[k][0] = -2;
+                sosede[k][1] = -2;
+                mapped_sosede[k] = -99;
+            }
+
+            // Pridobi indeks vsake celice v vrstici heksagona z indeksom j
+            int mapJ = (j - COLUMNS + i + 1) / 2 - 1;
+
+            // Zgornje sosede
             if (i - 1 >= 0)
-            { // zgornje sosede
+            {
+                int mapZG = (j - COLUMNS + (i - 1) + 1) / 2;
+                // Zgornja leva
                 if (j - 1 >= 0 && j != COLUMNS - i - 1)
-                { // zgornje LEVA
+                {
                     sosede[0][0] = j - 1;
                     sosede[0][1] = i - 1;
-                    mapped_sosede[0] = (i - 1) * COLUMNS - mappJ - 1;
+                    mapped_sosede[0] = (i - 1) * COLUMNS + mapZG;
                 }
                 else
-                { // ni leve sosede
+                {
                     sosede[0][0] = -1;
                     sosede[0][1] = -1;
                 }
+
+                // Zgornja desna
                 if (j + 1 < stolpci)
-                { // zgoraj desna soseda
+                {
                     sosede[1][0] = j + 1;
                     sosede[1][1] = i - 1;
-                    mapped_sosede[1] = (i - 1) * COLUMNS + mappJ + 1;
+                    mapped_sosede[1] = (i - 1) * COLUMNS + mapZG;
                 }
                 else
-                { // zgoraj ni desne sosede
+                {
                     sosede[1][0] = -1;
                     sosede[1][1] = -1;
                 }
             }
+            // Če ni zgornjih sosed
             else
-            { // zgornjih sosed NI
+            {
                 sosede[0][0] = -1;
                 sosede[0][1] = -1;
                 sosede[1][0] = -1;
                 sosede[1][1] = -1;
             }
 
+            // Sosede v isti vrstici
+            // Leva
             if (j - 2 >= 0 && j != COLUMNS - i - 1)
-            { // ISTA VRSTICA; LEVA
+            {
                 sosede[2][0] = j - 2;
-                ;
                 sosede[2][1] = i;
-                mapped_sosede[2] = i * COLUMNS + mappJ - 2;
+                mapped_sosede[2] = i * COLUMNS + mapJ - 2;
             }
             else
-            { // ni leve sosede
+            {
                 sosede[2][0] = -1;
                 sosede[2][1] = -1;
             }
+
+            // Desna
             if (j + 2 < stolpci && j != stolpci - i)
-            { // DESNA soseda
+            {
                 sosede[3][0] = j + 2;
                 sosede[3][1] = i;
-                mapped_sosede[3] = i * COLUMNS + mappJ + 2;
+                mapped_sosede[3] = i * COLUMNS + mapJ;
             }
             else
-            { //  ni desne sosede
+            {
                 sosede[3][0] = -1;
                 sosede[3][1] = -1;
             }
 
+            // Spodnje sosede
             if (i + 1 < vrstice && j != COLUMNS - i - 1)
-            { // spodnje  sosede  //i+1 || j-1 in j+1
+            {
+                int mapSP = (j - COLUMNS + (i + 1) + 1) / 2;
+                // Spodnja leva
                 if (j - 1 >= 0)
-                { // leva
+                {
                     sosede[4][0] = j - 1;
                     sosede[4][1] = i + 1;
-                    mapped_sosede[4] = (i + 1) * COLUMNS + mappJ - 1;
+                    mapped_sosede[4] = (i + 1) * COLUMNS + mapSP;
                 }
                 else
-                { // ni leve sosede
+                {
                     sosede[4][0] = -1;
                     sosede[4][1] = -1;
                 }
+
+                // Spodnja desna
                 if (j + 1 < stolpci && j != stolpci - i)
-                { // desna spodnja soseda
+                {
                     sosede[5][0] = j + 1;
                     sosede[5][1] = i + 1;
-                    mapped_sosede[5] = (i + 1) * COLUMNS + mappJ + 1;
+                    mapped_sosede[5] = (i + 1) * COLUMNS + mapSP + 1;
                 }
                 else
-                { // ni desne sosede
+                {
                     sosede[5][0] = -1;
                     sosede[5][1] = -1;
                 }
             }
+            // Če ni spodnjih sosed
             else
-            { // ni spodnjih sosed
-                sosede[4][0] = -1;
-                sosede[4][0] = -1;
-                sosede[5][1] = -1;
-                sosede[5][1] = -1;
-            }
-            // vpis v strukturu
-            cells[index].neighbors = sosede;
-            cells[index].i = j; // kontra?
-            cells[index].j = i;
-
-            // printTab(sosede,j,mappIdx);
-            printmaped(sosede, j, i, mapped_sosede);
-            printf("\n");
-            // printf("index: %d - > %d\n",index,mappJ);
-            index++;
-            for (int x = 0; x < 6; x++)
             {
-                sosede[x][0] = -2;
-                sosede[x][1] = -2;
+                sosede[4][0] = -1;
+                sosede[4][1] = -1;
+                sosede[5][0] = -1;
+                sosede[5][1] = -1;
             }
+
+            // Vpis v strukturo
+            cells[i].neighbors = sosede;
+            cells[i].pos_x = j;
+            cells[i].pos_y = i;
+
+            printmapped(sosede, j, i, mapped_sosede);
+            printf("\n");
         }
     }
-    // printf("%d \n",index);
+
+    // Free memory
     for (int i = 0; i < 6; i++)
     {
         free(sosede[i]);
     }
     free(sosede);
+    free(mapped_sosede);
 }
 
 int main()
 {
 
     int array_size = COLUMNS * ROWS;
-    printHexagon(6);
+    printHexagon(ROWS);
     // Definicija arraya s structi
     struct Cell *cells = malloc(array_size * sizeof *cells);
     neighbours(cells);
