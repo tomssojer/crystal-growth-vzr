@@ -63,6 +63,7 @@ void neighbours(Cell *cells)
     for (int i = 0; i < NUM_NEIGHBORS; i++)
         sosede[i] = (int *)malloc(2 * sizeof(int));
 
+    int index = 0;
     int vrstice = ROWS;
     int stolpci = COLUMNS * 3 - 2;
 
@@ -203,9 +204,9 @@ void neighbours(Cell *cells)
             }
 
             // Vpis v strukturo
-            cells[i].neighbors = sosede;
-            cells[i].pos_x = j;
-            cells[i].pos_y = i;
+            cells[index].neighbors = mapped_sosede;
+            cells[index].id = index;
+            index++;
 
             printmapped(sosede, j, i, mapped_sosede);
             printf("\n");

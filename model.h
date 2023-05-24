@@ -3,9 +3,8 @@
 
 typedef struct Cell
 {
-    // Hexagon indexes in array of structs
-    int pos_x;
-    int pos_y;
+    // Cell id
+    int id;
 
     // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
     int type;
@@ -14,8 +13,8 @@ typedef struct Cell
     double state;
     int ice;
 
-    // Neighbours of the cell [6][2] - [[x1][y1], ...]
-    int **neighbors;
+    // Neighbors of the cell [6] - [i1, i2, ...]
+    int *neighbors;
 } Cell;
 
 double initialize_state(int type)
