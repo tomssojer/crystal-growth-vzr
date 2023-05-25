@@ -26,8 +26,8 @@ void init_grid(Cell *cells)
 
         for (int j = null_elements; j < stolpci - i; j += 2)
         {
-            cells[index].i = i;
-            cells[index].j = j;
+            cells[index].x = i;
+            cells[index].y = j;
             // Nastavimo dummy vrednosti v array
             for (int k = 0; k < NUM_NEIGHBORS; k++)
             {

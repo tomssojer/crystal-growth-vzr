@@ -4,7 +4,6 @@
 #include <math.h>
 #include <time.h>
 #include "constants.h"
-#include "grid.h"
 #include "model.h"
 
 void printTab(int **tab, int j, int mappIdx)
@@ -36,21 +35,24 @@ void printStructs(Cell *cells)
     }
 }
 
-void serial()
+void serial(Cell *cells)
 {
     float average = 0;
     for (int i = 0; i < STEPS; i++)
     {
-        for (int i = 0; i < NUM_CELLS; i++)
+        for (int j = 0; j < NUM_CELLS; j++)
         {
-            // We deal with one cell at the time
-            if (cells[i].type == 1 || cells[i].type == 2)
+            // We deal with one cell at the time, do not deal with edge type
+            if (cells[j].type != 3)
             {
                 // Calculate average state of neighbors, needs current cell's neighbours and pointer to all cells
-                average = average_state(cells[i].neighbors, cells);
-                cells[i].state = change_state(cells[i].type, cells[i].state, average);
+                average = average_state(cells[j].neighbors, cells);
+                cells[j].state = change_state(cells[j].type, cells[j].state, average);
             }
         }
+
+        for (int j = 0; j < NUM_CELLS; j++)
+            set_type_boundary(cells, cells[j].neighbors);
     }
 
     // Sprintaj vse elemente v strukturi
@@ -73,11 +75,11 @@ int main(int argc, int *argv[])
 
     // ------------- Konec inicializacije ------------- //
 
-    time_t start_time, end_time;
+    double start_time, end_time;
     double time_difference;
     start_time = time(NULL);
 
-    serial();
+    serial(cells);
 
     end_time = time(NULL);
     time_difference = difftime(end_time, start_time);

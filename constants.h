@@ -20,4 +20,4 @@
 #define GAMMA 0.5
 
 // število korakov simulacije
-#define STEPS 10
+#define STEPS 1000000
