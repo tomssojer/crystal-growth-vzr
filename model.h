@@ -263,18 +263,34 @@ void init_grid(Cell *cells)
     set_type_boundary(cells, cells[position].neighbors);
 }
 
-void draw_board()
+void draw_board(Cell *cells)
 {
     int columns = 6;
     int stolpci = 3 * COLUMNS - 2;
+    int clen=0;
     for (int i = 0; i < ROWS; i++)
     {
         for (int j = 0; j < stolpci; j++)
         {
+
             if (j >= (COLUMNS - i - 1) && j < stolpci - i)
             {
-                printf("*.");
+                // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
+                int tip=cells[clen].type;
+                if(tip==0) {
+                    printf("F.");
+                } else if(tip==1) {
+                    printf("B.");
+                } else if(tip==2) {
+                    printf("U.");
+                } else if(tip==3 && j< stolpci- i - 1) {
+                    printf("E.");
+                } else if(tip==3 ) {
+                    printf("E");
+                }
+                //printf("*.");
                 j++;
+                clen++;
             }
             else
             {
