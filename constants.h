@@ -4,6 +4,9 @@
 // number of columns
 #define COLUMNS 6
 
+// total number of cells
+#define NUM_CELLS ROWS *COLUMNS
+
 // number of neighbors
 #define NUM_NEIGHBORS 6
 
@@ -15,3 +18,6 @@
 
 // diffusion coefficient
 #define GAMMA 0.5
+
+// število korakov simulacije
+#define STEPS 10
