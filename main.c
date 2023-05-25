@@ -50,6 +50,19 @@ void printmapped(int **tab, int j, int x, int *mapp)
     }
 }
 
+void printStructs(Cell *cells)
+{
+    for (int i = 0; i < ROWS * COLUMNS; i++)
+    {
+        printf("id:%d,\ttype: %d,\tstate: %lf,\tneighbors: ", cells[i].id, cells[i].type, cells[i].state);
+
+        for (int j = 0; j < NUM_NEIGHBORS; j++)
+            printf("%d - %d, ", j, cells[i].neighbors[j]);
+
+        printf("\n");
+    }
+}
+
 void neighbours(Cell *cells)
 {
     //  sosede velikosti 6 sosed -2(x,y) ;
@@ -208,8 +221,16 @@ void neighbours(Cell *cells)
             cells[index].id = index;
             index++;
 
-            printmapped(sosede, j, i, mapped_sosede);
-            printf("\n");
+            // for (int i = 0; i < ROWS * COLUMNS; i++)
+            // {
+            //     for (int j = 0; j < NUM_NEIGHBORS; j++)
+            //         printf("%d\t", cells[i].neighbors[j]);
+            //     printf("\n");
+            //     printf("%d\n", cells[i].id);
+            // }
+
+            // printmapped(sosede, j, i, mapped_sosede);
+            // printf("\n");
         }
     }
 
@@ -227,20 +248,24 @@ int main()
 
     int array_size = COLUMNS * ROWS;
     printHexagon(ROWS);
+
     // Definicija arraya s structi
-    struct Cell *cells = malloc(array_size * sizeof *cells);
+    Cell *cells = malloc(array_size * sizeof *cells);
+
+    // Dodaj sosede in indekse v struct
     neighbours(cells);
 
-    int i, j;
-    // First, initialize state on all cells
-    for (i = 0; i < array_size; i++)
-    {
-        // We deal with one cell at the time
-        cells[i].state = initialize_state(cells[i].type);
-    }
+    // Set type 1 v struct
+    set_type(cells);
+
+    // Določi začetno vrednost glede na tip celice
+    init_state(cells);
+
+    // Sprintaj vse elemente v strukturi
+    printStructs(cells);
 
     float average;
-    for (i = 0; i < array_size; i++)
+    for (int i = 0; i < array_size; i++)
     {
         // We deal with one cell at the time
         if (cells[i].type == 1 || cells[i].type == 2)
@@ -256,33 +281,3 @@ int main()
 
     return 0;
 }
-
-// int main() {
-
-//     int N = 5;
-//     float* X;
-//     float* Y;
-//     int array_size = (3 * COLUMNS - 2)* ROWS;
-
-//     // Definicija arraya s structi
-//     struct Cell cell;
-//     struct Cell* cells = malloc(array_size * sizeof *cells);
-//     // struct Cell cell_array[array_size];
-
-//     make_hex_grid(N, &X, &Y);
-
-//     int i, j;
-//     for (i = 0; i < N; i++) {
-//         for (j = 0; j < N; j++) {
-//             printf("(%f, %f) ", X[i * N + j], Y[i * N + j]);
-//             initialize(cell);
-//         }
-//         printf("\n");
-//     }
-
-//     // Free allocated memory
-//     free(X);
-//     free(Y);
-
-//     return 0;
-// }

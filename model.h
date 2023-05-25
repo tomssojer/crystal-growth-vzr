@@ -11,22 +11,26 @@ typedef struct Cell
 
     // Amount of water
     double state;
-    int ice;
 
     // Neighbors of the cell [6] - [i1, i2, ...]
     int *neighbors;
 } Cell;
 
-double initialize_state(int type)
+void set_type(Cell *cells)
 {
-    double state = 0;
+    for (int i = 0; i < ROWS * COLUMNS; i++)
+        cells[i].type = 1;
+}
 
-    if (type != 0)
-        state = BETA;
-    else
-        state = 1;
-
-    return state;
+void init_state(Cell *cells)
+{
+    for (int i = 0; i < ROWS * COLUMNS; i++)
+    {
+        if (cells[i].type != 0)
+            cells[i].state = BETA;
+        else
+            cells[i].state = 1;
+    }
 }
 
 double change_state(int type, double state, double average) // pohitritev aplha pre defined
@@ -42,7 +46,6 @@ double change_state(int type, double state, double average) // pohitritev aplha 
 double get_state(struct Cell cells) // pohitritev aplha pre defined
 {
     return cells.state;
-    ;
 }
 
 /*double get_state(int pos_x, int pos_y)
@@ -55,13 +58,13 @@ double get_state(struct Cell cells) // pohitritev aplha pre defined
     return state;
 }*/
 
-double average_state(int **neighbors, struct Cell *cells) // dobi cel seznam
+double average_state(int *neighbors, struct Cell *cells) // dobi cel seznam
 {
     double average = 0;
     for (int i = 0; i < NUM_NEIGHBORS; i++)
     {
-        int x = neighbors[i][0];
-        int y = neighbors[i][1];
+        int x = neighbors[i];
+        int y = neighbors[i];
         int pos = x * COLUMNS + y;
         average += cells[pos].state;
         // average += get_state(cells, neighbors[i][0], neighbors[i][1]);
@@ -70,10 +73,4 @@ double average_state(int **neighbors, struct Cell *cells) // dobi cel seznam
     average /= NUM_NEIGHBORS;
 
     return average;
-}
-
-void change_type(int ice, int type)
-{
-    if (ice == 1)
-        type = 0;
 }
