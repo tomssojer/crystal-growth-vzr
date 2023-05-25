@@ -45,28 +45,51 @@ void init_state(Cell *cells)
 
 double change_state(int type, double state, double average) // pohitritev aplha pre defined
 {
-    // Difuzija s sosedi
-    state = state + ALPHA / 2 * (average - state);
+    //  unreceptive, edge
+    // if (type != 0)
+    //     state = state + ALPHA / 2 * (average - state);
+
+    // receptive
+    if (type < 2)
+    {
+        state = state + ALPHA / 2 * average + GAMMA;
+    }
+    //  unreceptive, edge
+    else
+    {
+        state = state + ALPHA / 2 * (average - state);
+    }
 
     // Konvekcija
-    if (type == 0 || type == 1)
-        state += GAMMA;
+    // if (type == 0 || type == 1)
+    //     state += GAMMA;
 
     return state;
 }
 
+// Average state for diffusion
 double average_state(int *neighbors, Cell *cells) // dobi cel seznam
 {
     double average = 0;
+    int count = 0;
+
     for (int i = 0; i < NUM_NEIGHBORS; i++)
     {
+        // check if neighbour exists
         if (neighbors[i] >= 0)
         {
-            average += cells[neighbors[i]].state;
+            // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
+            if (cells[neighbors[i]].type > 1)
+            {
+                average += cells[neighbors[i]].state;
+                count++;
+            }
         }
     }
+    if (count == 0)
+        return average;
 
-    average /= NUM_NEIGHBORS;
+    average /= count;
 
     return average;
 }
@@ -95,9 +118,9 @@ void init_grid(Cell *cells)
 
         for (int j = null_elements; j < stolpci - i; j += 2)
         {
-            //cells[index].x = i;
-            //cells[index].y = j;
-            //  Nastavimo dummy vrednosti v array
+            // cells[index].x = i;
+            // cells[index].y = j;
+            //   Nastavimo dummy vrednosti v array
             for (int k = 0; k < NUM_NEIGHBORS; k++)
             {
                 sosede[k][0] = -2;
@@ -106,7 +129,7 @@ void init_grid(Cell *cells)
             }
 
             // Inicializiramo tipe celic
-            if (i == 0 || i == vrstice - 1 || j == null_elements || j +1  == stolpci - i)
+            if (i == 0 || i == vrstice - 1 || j == null_elements || j + 1 == stolpci - i)
             {
                 cells[index].type = 3;
             }
@@ -156,7 +179,7 @@ void init_grid(Cell *cells)
                     sosede[1][1] = -1;
                 }
             }
-                // Če ni zgornjih sosed
+            // Če ni zgornjih sosed
             else
             {
                 sosede[0][0] = -1;
@@ -227,7 +250,7 @@ void init_grid(Cell *cells)
                     sosede[5][1] = -1;
                 }
             }
-                // Če ni spodnjih sosed
+            // Če ni spodnjih sosed
             else
             {
                 sosede[4][0] = -1;
@@ -255,16 +278,17 @@ void init_grid(Cell *cells)
     free(mapped_sosede);
 
     // nastavitev ledene celice in sosed
-    int position = ROWS*ROWS/2 + COLUMNS/2;
+    int position = ROWS * ROWS / 2 + COLUMNS / 2;
     cells[position].type = 0;
     set_type_boundary(cells, cells[position].neighbors);
 }
 
+// function for visualization of board
 void draw_board(Cell *cells)
 {
     int columns = 6;
     int stolpci = 3 * COLUMNS - 2;
-    int clen=0;
+    int clen = 0;
     for (int i = 0; i < ROWS; i++)
     {
         for (int j = 0; j < stolpci; j++)
@@ -273,19 +297,28 @@ void draw_board(Cell *cells)
             if (j >= (COLUMNS - i - 1) && j < stolpci - i)
             {
                 // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
-                int tip=cells[clen].type;
-                if(tip==0) {
+                int tip = cells[clen].type;
+                if (tip == 0)
+                {
                     printf("F.");
-                } else if(tip==1) {
+                }
+                else if (tip == 1)
+                {
                     printf("B.");
-                } else if(tip==2) {
+                }
+                else if (tip == 2)
+                {
                     printf("|.");
-                } else if(tip==3 && j< stolpci- i - 1) {
+                }
+                else if (tip == 3 && j < stolpci - i - 1)
+                {
                     printf("E.");
-                } else if(tip==3 ) {
+                }
+                else if (tip == 3)
+                {
                     printf("E");
                 }
-                //printf("*.");
+                // printf("*.");
                 j++;
                 clen++;
             }
@@ -297,25 +330,26 @@ void draw_board(Cell *cells)
         printf("\n");
     }
 }
-void printHexagon(int size)
-{ // indeksi sosed so [y-1][x-1][x+1] in [y][x-1][x-2] in [y+1][x-1][x-2]
-    int i, j;
-    for (i = 0; i < ROWS; i++)
-    {
-        for (j = 0; j < COLUMNS - i - 1; j++)
-            printf(".");
 
-        for (j = 0; j < size; j++)
-        {
-            if (j == size - 1)
-                printf("*");
-            else
-                printf("*.");
-        }
+// void printHexagon(int size)
+// { // indeksi sosed so [y-1][x-1][x+1] in [y][x-1][x-2] in [y+1][x-1][x-2]
+//     int i, j;
+//     for (i = 0; i < ROWS; i++)
+//     {
+//         for (j = 0; j < COLUMNS - i - 1; j++)
+//             printf(".");
 
-        for (j = size - i; j < size; j++)
-            printf(".");
+//         for (j = 0; j < size; j++)
+//         {
+//             if (j == size - 1)
+//                 printf("*");
+//             else
+//                 printf("*.");
+//         }
 
-        printf("\n");
-    }
-}
+//         for (j = size - i; j < size; j++)
+//             printf(".");
+
+//         printf("\n");
+//     }
+// }
