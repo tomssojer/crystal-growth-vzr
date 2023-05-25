@@ -6,9 +6,6 @@ typedef struct Cell
     // Cell id
     int id;
 
-    int x;
-    int y;
-
     // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
     int type;
 
@@ -29,7 +26,7 @@ void set_type_boundary(Cell *cells, int *neighbors)
         if (neighbors[i] >= 0)
         {
             // Dodeli tip boundary le, če ni frozen ali edge
-            if (cells[neighbors[i]].type != 0 || cells[neighbors[i]].type != 3)
+            if (cells[neighbors[i]].type != 0 && cells[neighbors[i]].type != 3)
                 cells[neighbors[i]].type = 1;
         }
     }
@@ -98,8 +95,8 @@ void init_grid(Cell *cells)
 
         for (int j = null_elements; j < stolpci - i; j += 2)
         {
-            // cells[index].x = i;
-            // cells[index].y = j;
+            //cells[index].x = i;
+            //cells[index].y = j;
             //  Nastavimo dummy vrednosti v array
             for (int k = 0; k < NUM_NEIGHBORS; k++)
             {
@@ -109,7 +106,7 @@ void init_grid(Cell *cells)
             }
 
             // Inicializiramo tipe celic
-            if (i == 0 || i == vrstice - 1 || j == null_elements || j == stolpci - i)
+            if (i == 0 || i == vrstice - 1 || j == null_elements || j +1  == stolpci - i)
             {
                 cells[index].type = 3;
             }
@@ -159,7 +156,7 @@ void init_grid(Cell *cells)
                     sosede[1][1] = -1;
                 }
             }
-            // Če ni zgornjih sosed
+                // Če ni zgornjih sosed
             else
             {
                 sosede[0][0] = -1;
@@ -230,7 +227,7 @@ void init_grid(Cell *cells)
                     sosede[5][1] = -1;
                 }
             }
-            // Če ni spodnjih sosed
+                // Če ni spodnjih sosed
             else
             {
                 sosede[4][0] = -1;
@@ -258,7 +255,7 @@ void init_grid(Cell *cells)
     free(mapped_sosede);
 
     // nastavitev ledene celice in sosed
-    int position = NUM_CELLS / 2;
+    int position = ROWS*ROWS/2 + COLUMNS/2;
     cells[position].type = 0;
     set_type_boundary(cells, cells[position].neighbors);
 }
@@ -282,7 +279,7 @@ void draw_board(Cell *cells)
                 } else if(tip==1) {
                     printf("B.");
                 } else if(tip==2) {
-                    printf("U.");
+                    printf("|.");
                 } else if(tip==3 && j< stolpci- i - 1) {
                     printf("E.");
                 } else if(tip==3 ) {
