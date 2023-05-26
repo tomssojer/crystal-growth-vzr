@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "constants.h"
+#include "../constants.h"
 
 typedef struct Cell
 {
@@ -54,7 +54,7 @@ double change_state(int type, double state, double average) // pohitritev aplha 
     {
         state = state + ALPHA / 2 * average + GAMMA;
     }
-        //  unreceptive, edge
+    //  unreceptive, edge
     else
     {
         state = state + ALPHA / 2 * (average - state);
@@ -178,7 +178,7 @@ void init_grid(Cell *cells)
                     sosede[1][1] = -1;
                 }
             }
-                // Če ni zgornjih sosed
+            // Če ni zgornjih sosed
             else
             {
                 sosede[0][0] = -1;
@@ -249,7 +249,7 @@ void init_grid(Cell *cells)
                     sosede[5][1] = -1;
                 }
             }
-                // Če ni spodnjih sosed
+            // Če ni spodnjih sosed
             else
             {
                 sosede[4][0] = -1;
@@ -329,26 +329,3 @@ void draw_board(Cell *cells)
         printf("\n");
     }
 }
-
-// void printHexagon(int size)
-// { // indeksi sosed so [y-1][x-1][x+1] in [y][x-1][x-2] in [y+1][x-1][x-2]
-//     int i, j;
-//     for (i = 0; i < ROWS; i++)
-//     {
-//         for (j = 0; j < COLUMNS - i - 1; j++)
-//             printf(".");
-
-//         for (j = 0; j < size; j++)
-//         {
-//             if (j == size - 1)
-//                 printf("*");
-//             else
-//                 printf("*.");
-//         }
-
-//         for (j = size - i; j < size; j++)
-//             printf(".");
-
-//         printf("\n");
-//     }
-// }

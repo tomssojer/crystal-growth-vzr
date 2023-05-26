@@ -79,7 +79,7 @@ void serial(Cell *cells)
             {
                 if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
                 {
-                    printf("break %d\n",i);
+                    printf("break %d\n", i);
                     i = STEPS;
                     j = NUM_CELLS;
                     break;
@@ -87,7 +87,7 @@ void serial(Cell *cells)
             }
         }
 
-        //printf("Step: %d ----------------------------------------------------------\n", i);
+        // printf("Step: %d ----------------------------------------------------------\n", i);
 
         // for (int k = 0; k < NUM_CELLS; k++)
         // {
@@ -96,7 +96,7 @@ void serial(Cell *cells)
         // }
         // printf("\n");
 
-        //draw_board(cells);
+        draw_board(cells);
     }
     free(stateTemp);
 }
@@ -106,8 +106,19 @@ int main(int argc, int *argv[])
     // // ------------- Začetek inicializacije ------------- //
     // printHexagon(ROWS); //
 
+    char *file_name[30];
+    // Ime datoteke - odvisno od št vrstic, alfe, bete, game
+    sprintf(file_name, "serial_%d_%f_%f_%f.txt", ROWS, ALPHA, BETA, GAMMA);
+    FILE *file = fopen(file_name, "w");
+
+    if (file == NULL)
+    {
+        printf("Could not open file.")
+            exit(-1);
+    }
+
     // Definicija arraya s structi
-    Cell *cells = malloc(NUM_CELLS * sizeof *cells);
+    Cell *cells = malloc(NUM_CELLS * sizeof(*cells));
 
     // Dodaj sosede in indekse v struct
     init_grid(cells);

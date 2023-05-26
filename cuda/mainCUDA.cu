@@ -3,8 +3,34 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include "constants.h"
 #include "modelCUDA.h"
+
+// compile
+// nvcc mainCUDA.cu -O2  -o mainCUDA
+
+// 1. Začni z eno frozen celico, okoli nje so boundary
+// 2. Za vse celice, ki so boundary in unreceptive poteka difuzija
+// 3. Za vse celice, ki so frozen in boundary poteka konvekcija
+// 3.a Upoštevaj, da le sosede, ki so edge ali unreceptive sharajo vodo
+// 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
+// 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
+__global__ void testGPU()
+{
+    printf("Hello world from the GPU!\n");
+}
+
+__global__ void get_states(Cell *cells, double *stateTemp, int size)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (x < size && cells[x].type != 3) // ne presežem limite slike
+    {
+        // average_state(cells[j].neighbors, cells);
+    }
+}
 
 void printTab(int **tab, int j, int mappIdx)
 {
@@ -35,17 +61,12 @@ void printStructs(Cell *cells)
     }
 }
 
-// 1. Začni z eno frozen celico, okoli nje so boundary
-// 2. Za vse celice, ki so boundary in unreceptive poteka difuzija
-// 3. Za vse celice, ki so frozen in boundary poteka konvekcija
-// 3.a Upoštevaj, da le sosede, ki so edge ali unreceptive sharajo vodo
-// 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
-// 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
-
-void serial(Cell *cells)
+void parallel_cuda(Cell *cells)
 {
     float average = 0;
-    double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
+    double *g_stateTemp;
+    cudaMalloc((void **)&g_stateTemp, NUM_CELLS * sizeof(double));
+    // init g_stateTemp on GPU
 
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
     {
@@ -55,10 +76,11 @@ void serial(Cell *cells)
             if (cells[j].type != 3)
             {
                 // Calculate average state of neighbors, needs current cell's neighbours and pointer to all cells
-                average = average_state(cells[j].neighbors, cells);
 
-                stateTemp[j] = change_state(cells[j].type, cells[j].state, average);
-                // cells[j].state = change_state(cells[j].type, cells[j].state, average);
+                // average = average_state(cells[j].neighbors, cells);
+
+                // stateTemp[j] = change_state(cells[j].type, cells[j].state, average);
+                //  cells[j].state = change_state(cells[j].type, cells[j].state, average);
             }
         }
 
@@ -79,7 +101,7 @@ void serial(Cell *cells)
             {
                 if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
                 {
-                    printf("break %d\n",i);
+                    printf("break %d\n", i);
                     i = STEPS;
                     j = NUM_CELLS;
                     break;
@@ -87,7 +109,7 @@ void serial(Cell *cells)
             }
         }
 
-        //printf("Step: %d ----------------------------------------------------------\n", i);
+        // printf("Step: %d ----------------------------------------------------------\n", i);
 
         // for (int k = 0; k < NUM_CELLS; k++)
         // {
@@ -96,18 +118,52 @@ void serial(Cell *cells)
         // }
         // printf("\n");
 
-        //draw_board(cells);
+        if (i % 20 == 0)
+            draw_board(cells);
     }
     free(stateTemp);
 }
+void check_CUDA() // function to copy into GPU memory
+{
+    int deviceCount;
+    printf("Hello world from the CPU!\n");
 
-int main(int argc, int *argv[])
+    cudaGetDeviceCount(&deviceCount);
+
+    if (deviceCount == 0)
+    {
+        printf("No CUDA devices found\n");
+    }
+
+    testGPU<<<1, 1>>>(); // gred size block size
+    cudaDeviceSynchronize();
+}
+void run_CUDA(Cell *cells)
+{
+    // Allocate memory on GPU
+    Cell *d_cells;
+    cudaMalloc((void **)&d_cells, NUM_CELLS * sizeof(Cell));
+
+    // Copy data from CPU to GPU
+    cudaMemcpy(d_cells, cells, NUM_CELLS * sizeof(Cell), cudaMemcpyHostToDevice);
+
+    // Run kernel
+    parallel_cuda(d_cells);
+
+    // Copy data from GPU to CPU
+    cudaMemcpy(cells, d_cells, NUM_CELLS * sizeof(Cell), cudaMemcpyDeviceToHost);
+
+    // Free memory on GPU
+    cudaFree(d_cells);
+}
+
+int main(int argc, char *argv[])
 {
     // // ------------- Začetek inicializacije ------------- //
     // printHexagon(ROWS); //
 
     // Definicija arraya s structi
-    Cell *cells = malloc(NUM_CELLS * sizeof *cells);
+    Cell *cells = (Cell *)malloc(NUM_CELLS * sizeof(*cells));
 
     // Dodaj sosede in indekse v struct
     init_grid(cells);
@@ -119,10 +175,11 @@ int main(int argc, int *argv[])
 
     clock_t start_time, end_time;
     start_time = clock();
+    // draw_board(cells);
+    check_CUDA();
 
-    draw_board(cells);
-    serial(cells);
-    draw_board(cells);
+    // serial(cells);
+    // draw_board(cells);
 
     end_time = clock();
     printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);

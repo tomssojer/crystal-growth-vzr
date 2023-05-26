@@ -1,8 +1,9 @@
 // number of rows
-#define ROWS 120
+#define ROWS 60
 
 // number of columns
-#define COLUMNS 120
+#define COLUMNS 60
+
 // total number of cells
 #define NUM_CELLS ROWS *COLUMNS
 
@@ -10,7 +11,7 @@
 #define NUM_NEIGHBORS 6
 
 // diffusion coefficient
-#define ALPHA 1.3
+#define ALPHA 1.2
 
 // background vapour level
 #define BETA 0.68
@@ -19,4 +20,4 @@
 #define GAMMA 0.0048
 
 // število korakov simulacije
-#define STEPS 200
+#define STEPS 100
