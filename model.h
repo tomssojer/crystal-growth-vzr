@@ -59,6 +59,20 @@ double change_state(int type, double state, double average) // pohitritev aplha 
     {
         state = state + ALPHA / 2 * (average - state);
     }
+    //  unreceptive, edge
+    // if (type != 0)
+    //     state = state + ALPHA / 2 * (average - state);
+
+    // receptive
+    if (type < 2)
+    {
+        state = state + ALPHA / 2 * average + GAMMA;
+    }
+    //  unreceptive, edge
+    else
+    {
+        state = state + ALPHA / 2 * (average - state);
+    }
 
     // Konvekcija
     // if (type == 0 || type == 1)
@@ -178,7 +192,7 @@ void init_grid(Cell *cells)
                     sosede[1][1] = -1;
                 }
             }
-                // Če ni zgornjih sosed
+            // Če ni zgornjih sosed
             else
             {
                 sosede[0][0] = -1;
@@ -249,7 +263,7 @@ void init_grid(Cell *cells)
                     sosede[5][1] = -1;
                 }
             }
-                // Če ni spodnjih sosed
+            // Če ni spodnjih sosed
             else
             {
                 sosede[4][0] = -1;
