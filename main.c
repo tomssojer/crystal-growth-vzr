@@ -106,16 +106,16 @@ int main(int argc, int *argv[])
     // // ------------- Začetek inicializacije ------------- //
     // printHexagon(ROWS); //
 
-    char *file_name[30];
-    // Ime datoteke - odvisno od št vrstic, alfe, bete, game
-    sprintf(file_name, "serial_%d_%f_%f_%f.txt", ROWS, ALPHA, BETA, GAMMA);
-    FILE *file = fopen(file_name, "w");
+    // char *file_name[30];
+    // // Ime datoteke - odvisno od št vrstic, alfe, bete, game
+    // sprintf(file_name, "serial_%d_%f_%f_%f.txt", ROWS, ALPHA, BETA, GAMMA);
+    // FILE *file = fopen(file_name, "w");
 
-    if (file == NULL)
-    {
-        printf("Could not open file.")
-            exit(-1);
-    }
+    // if (file == NULL)
+    // {
+    //     printf("Could not open file.")
+    //         exit(-1);
+    // }
 
     // Definicija arraya s structi
     Cell *cells = malloc(NUM_CELLS * sizeof(*cells));

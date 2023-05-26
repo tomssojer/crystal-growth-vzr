@@ -1,8 +1,8 @@
 // number of rows
-#define ROWS 60
+#define ROWS 10
 
 // number of columns
-#define COLUMNS 60
+#define COLUMNS 10
 
 // total number of cells
 #define NUM_CELLS ROWS *COLUMNS

@@ -13,7 +13,7 @@ typedef struct Cell
     double state;
 
     // Neighbors of the cell [6] - [i1, i2, ...]
-    int *neighbors;
+    int neighbors[6];
 } Cell;
 
 void set_type_boundary(Cell *cells, int *neighbors)
@@ -259,7 +259,7 @@ void init_grid(Cell *cells)
             }
 
             // inicializacija pomnilnika
-            cells[index].neighbors = (int *)malloc(NUM_NEIGHBORS * sizeof(int));
+           // cells[index].neighbors = (int *)malloc(NUM_NEIGHBORS * sizeof(int));
 
             //  Vpis v strukturo
             memcpy(cells[index].neighbors, mapped_sosede, sizeof(int) * NUM_NEIGHBORS);
