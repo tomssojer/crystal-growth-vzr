@@ -1,147 +1,138 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 #include "constants.h"
 #include "model.h"
 
-void make_hex_grid(int N, float** X, float** Y) {
-    // Allocate memory for X and Y arrays
-    *X = (float*)malloc(N * N * sizeof(float));
-    *Y = (float*)malloc(N * N * sizeof(float));
-
-    int i, j;
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < N; j++) {
-            (*X)[i * N + j] = (float)j;
-            (*Y)[i * N + j] = (float)i;
-        }
-    }
-
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < N; j++) {
-            (*Y)[i * N + j] *= sqrt(3) / 2;
-        }
-    }
-
-    for (i = 0; i < N; i += 2) {
-        for (j = 0; j < N; j++) {
-            (*X)[i * N + j] += 0.5;
-        }
+void printTab(int **tab, int j, int mappIdx)
+{
+    for (int i = 0; i < 6; i++)
+    {
+        printf("%d->%d |(%2d,%2d) ", j, mappIdx, tab[i][0], tab[i][1]); // x y
     }
 }
 
-void printHexagon(int size) {
-    int i, j;
-    for (i = 0; i < ROWS; i++) {
-        for (j = 0; j < COLUMNS - i - 1; j++) {
-            printf(".");
-            //printf("%d",j);
-        }
-        for (j = 0; j < size; j++) {
+void printmapped(int **tab, int j, int x, int *mapp)
+{
+    for (int i = 0; i < 6; i++)
+    {
+        printf("[%d,%d]  (%2d,%2d)->%d |", j, x, tab[i][0], tab[i][1], mapp[i]); // x y
+    }
+}
 
-            if(j==size-1) {
-                printf("*");
-            } else {
-                printf("*.");
+void printStructs(Cell *cells)
+{
+    for (int i = 0; i < ROWS * COLUMNS; i++)
+    {
+        printf("id:%d,\ttype: %d,\tstate: %lf,\tneighbors: ", cells[i].id, cells[i].type, cells[i].state);
+
+        for (int j = 0; j < NUM_NEIGHBORS; j++)
+            printf("%d, ", cells[i].neighbors[j]);
+
+        printf("\n");
+    }
+}
+
+// 1. Začni z eno frozen celico, okoli nje so boundary
+// 2. Za vse celice, ki so boundary in unreceptive poteka difuzija
+// 3. Za vse celice, ki so frozen in boundary poteka konvekcija
+// 3.a Upoštevaj, da le sosede, ki so edge ali unreceptive sharajo vodo
+// 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
+// 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
+
+void serial(Cell *cells)
+{
+    float average = 0;
+    double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
+
+    for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
+    {
+        for (int j = 0; j < NUM_CELLS; j++) // posodobi vsa stanja - difuzija, konvekcija
+        {
+            // We deal with one cell at the time, do not deal with edge type
+            if (cells[j].type != 3)
+            {
+                // Calculate average state of neighbors, needs current cell's neighbours and pointer to all cells
+                average = average_state(cells[j].neighbors, cells);
+
+                stateTemp[j] = change_state(cells[j].type, cells[j].state, average);
+                // cells[j].state = change_state(cells[j].type, cells[j].state, average);
             }
         }
-        for (j = size - i ; j < size  ; j++) {
-            printf("%d",j);
-        }
-        printf("\n");
-    }
-}
 
-void calculate(int size) {
-   // int i, j;
-    char **board = (char**)malloc(ROWS * sizeof(char*));
-    char** matrix = (char**)malloc(ROWS * sizeof(char*));
-    for (int i = 0; i < ROWS; i++) {
-        matrix[i] = (char*)malloc((3*COLUMNS-2) * sizeof(char));
-        board[i] = (char*)malloc((3*COLUMNS-2) * sizeof(char));
-        for (int j = 0; j < COLUMNS - i - 1; j++) {
-            printf(".");
-            board[i][j] =  (char)".";
-            matrix[i][j] = 'A';
-            //printf("%d",j);
-        }
-        for (int j = 0; j < 2*size; j+=2) {
-
-            if(j==size-1) {
-                board[i][j] =  "*";
-                //printf("*");
-            } else {
-                board[i][j] =  "*";
-                board[i][j+1] =  ".";
-               // printf("*.");
+        for (int j = 0; j < NUM_CELLS; j++) // sedaj posodobi tipe celic
+        {
+            cells[j].state = stateTemp[j];
+            if (cells[j].state >= 1)
+            {
+                cells[j].type = 0; // turns into ice cell
+                set_type_boundary(cells, cells[j].neighbors);
             }
         }
-        for (int j = size - i ; j < size  ; j++) {
-            //printf("%d",j);
-            board[i][j] =  ".";
-        }
-        //printf("\n");
-    }
-    board[0][0] = (char) "A";
-    printf("%c",board[0][0]);
-    for(int i=0;i<ROWS;i++) {
-        for(int j=0;j<3*COLUMNS-2;j++) {
-            printf("%c",board[i][j]);
-        }
-        printf("\n");
-    }
-    // Free the dynamically allocated memory
-    for (int i  = 0; i < ROWS; i++) {
-        free(board[i]);
-    }
-    free(board);
 
+        // Če je ena od sosed celice tipa edge, prekini simulacijo
+        for (int j = 0; j < NUM_CELLS; j++)
+        {
+            for (int k = 0; k < NUM_NEIGHBORS; k++)
+            {
+                if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
+                {
+                    printf("break %d\n",i);
+                    i = STEPS;
+                    j = NUM_CELLS;
+                    break;
+                }
+            }
+        }
 
-    matrix[0][0] = 'A';
-    matrix[0][1] = 'B';
-    printf("%c",matrix[0][0]);
-    for (int i  = 0; i < ROWS; i++) {
-        free(matrix[i]);
+        //printf("Step: %d ----------------------------------------------------------\n", i);
+
+        // for (int k = 0; k < NUM_CELLS; k++)
+        // {
+        //     if (cells[k].type == 0 || cells[k].type == 1)
+        //         printf("id: %d,\ttype: %d,\tstate: %lf\n", k, cells[k].type, cells[k].state);
+        // }
+        // printf("\n");
+
+        //draw_board(cells);
     }
+    free(stateTemp);
 }
 
-int main() {
-    int size=6;
-    float neighbour_average = 0;
+int main(int argc, int *argv[])
+{
+    // // ------------- Začetek inicializacije ------------- //
+    // printHexagon(ROWS); //
 
-    // for (int i = 0; i < ROWS; i++)
-    //     for (int j = 0; j < COLUMNS; j++)
-    //     {
-    //         neighbour_average = average(); 
-    //         if (cell.type == 1 || cell.type == 2)
-    //             cell.state = change_state(cell.type, cell.state, cell.average);
+    // Definicija arraya s structi
+    Cell *cells = malloc(NUM_CELLS * sizeof *cells);
 
-    //     }
+    // Dodaj sosede in indekse v struct
+    init_grid(cells);
 
+    // Določi začetno vrednost glede na tip celice
+    init_state(cells);
 
-    //printHexagon(size);
-    calculate(6);
-    return 0;
-}
-/*
-int main() {
-    int N = 5;
-    float* X;
-    float* Y;
+    // ------------- Konec inicializacije ------------- //
 
-    make_hex_grid(N, &X, &Y);
+    clock_t start_time, end_time;
+    start_time = clock();
 
-    int i, j;
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < N; j++) {
-            printf("(%f, %f) ", X[i * N + j], Y[i * N + j]);
-        }
-        printf("\n");
-    }
+    draw_board(cells);
+    serial(cells);
+    draw_board(cells);
+
+    end_time = clock();
+    printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
 
     // Free allocated memory
-    free(X);
-    free(Y);
+    for (int i = 0; i < NUM_CELLS; i++)
+    {
+        free(cells[i].neighbors);
+    }
+    free(cells);
 
     return 0;
-}*/
+}
