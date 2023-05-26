@@ -299,19 +299,19 @@ void draw_board(Cell *cells)
                 int tip = cells[clen].type;
                 if (tip == 0)
                 {
-                    printf("F.");
+                    printf("F ");
                 }
                 else if (tip == 1)
                 {
-                    printf("B.");
+                    printf("B ");
                 }
                 else if (tip == 2)
                 {
-                    printf("..");
+                    printf("  ");
                 }
                 else if (tip == 3 && j < stolpci - i - 1)
                 {
-                    printf("E.");
+                    printf("E ");
                 }
                 else if (tip == 3)
                 {

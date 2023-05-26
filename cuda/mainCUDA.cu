@@ -86,12 +86,12 @@ void parallel_cuda(Cell *d_cells,Cell *cells)
         //cudaMemcpy(d_cells, cells, NUM_CELLS * sizeof(Cell), cudaMemcpyHostToDevice);
         //cudaDeviceSynchronize();
         // update states of board
-        get_states<<<numBlocks, blockSize>>>(d_cells,cells, d_stateTemp, 100);
+        get_states<<<numBlocks, blockSize>>>(d_cells,cells, d_stateTemp, NUM_CELLS);
         cudaDeviceSynchronize(); 
         checkCudaErrors(cudaMemcpy(stateT, d_stateTemp, NUM_CELLS * sizeof(double), cudaMemcpyDeviceToHost));
 
-        Cell *cells2 = (Cell *)malloc(NUM_CELLS * sizeof(*cells2));
-        checkCudaErrors(cudaMemcpy(cells2, d_cells, NUM_CELLS * sizeof(Cell), cudaMemcpyDeviceToHost));
+        //Cell *cells2 = (Cell *)malloc(NUM_CELLS * sizeof(*cells2));
+        checkCudaErrors(cudaMemcpy(cells, d_cells, NUM_CELLS * sizeof(Cell), cudaMemcpyDeviceToHost));
         cudaDeviceSynchronize();
         //printf("tu\n");
         // for (int k = 0; k < NUM_CELLS; k++)
@@ -104,7 +104,7 @@ void parallel_cuda(Cell *d_cells,Cell *cells)
         //         printf("%d\n",cells2[i].neighbors[j]);
         //     }
         // }
-        free(cells2);
+        //free(cells2);
             
         // }
         for (int j = 0; j < NUM_CELLS; j++) // sedaj posodobi tipe celic
@@ -134,7 +134,7 @@ void parallel_cuda(Cell *d_cells,Cell *cells)
 
         // printf("Step: %d ----------------------------------------------------------\n", i);
         //draw_board(cells);
-        checkCudaErrors(cudaMemcpy(d_cells, cells2, NUM_CELLS * sizeof(Cell), cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMemcpy(d_cells, cells, NUM_CELLS * sizeof(Cell), cudaMemcpyHostToDevice));
         
     }
     getLastCudaError("printGPU() execution failed\n");
