@@ -4,7 +4,7 @@
 #include <math.h>
 #include <time.h>
 #include "constants.h"
-#include "model.h"
+#include "modelMP.h"
 
 void printTab(int **tab, int j, int mappIdx)
 {
