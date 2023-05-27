@@ -286,8 +286,7 @@ void init_grid(Cell *cells)
 void draw_board(Cell *cells, FILE *file)
 {
     int stolpci = 3 * COLUMNS - 2;
-    int index = 0;
-
+    int clen = 0;
     for (int i = 0; i < ROWS; i++)
     {
         int null_elements = COLUMNS - i - 1;
@@ -297,67 +296,75 @@ void draw_board(Cell *cells, FILE *file)
             if (j >= null_elements && j < stolpci - i)
             {
                 // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
-                int type = cells[index].type;
-                if (type == 0)
-                    printf("F.");
-                else if (type == 1)
-                    printf("B.");
-                else if (type == 2)
-                    printf("..");
-                else if (type == 3 && j < stolpci - i - 1)
-                    printf("E.");
-                else if (type == 3)
+                int tip = cells[clen].type;
+                if (tip == 0)
+                {
+                    printf("F ");
+                }
+                else if (tip == 1)
+                {
+                    printf("B ");
+                }
+                else if (tip == 2)
+                {
+                    printf("  ");
+                }
+                else if (tip == 3 && j < stolpci - i - 1)
+                {
+                    printf("E ");
+                }
+                else if (tip == 3)
+                {
                     printf("E");
 
-                fprintf(file, "%d ", i);
-                fprintf(file, "%d ", j);
-                fprintf(file, "%d ", type);
+                    fprintf(file, "%d ", i);
+                    fprintf(file, "%d ", j);
+                    fprintf(file, "%d ", type);
 
-                j++;
-                index++;
+                    j++;
+                    index++;
+                }
+                else
+                    printf(" ");
             }
-            else
-                printf(" ");
+            printf("\n");
         }
-        printf("\n");
     }
-    fprintf(file, "\n");
-}
 
-// void write_to_file(Cell *cells, int **array_to_file)
-// {
-//     FILE *file = fopen("output_serial", "w");
-//     if (file == NULL)
-//     {
-//         printf("Could not open file.")
-//             exit(-1);
-//     }
+    // void write_to_file(Cellice *cells, int **array_to_file)
+    // {
+    //     FILE *file = fopen("output_serial", "w");
+    //     if (file == NULL)
+    //     {
+    //         printf("Could not open file.")
+    //             exit(-1);
+    //     }
 
-//     for (int i = 0; i < SIZE; i++)
-//     {
-//         array_to_file[i][0] = cells[i].state
-//     }
-// }
+    //     for (int i = 0; i < SIZE; i++)
+    //     {
+    //         array_to_file[i][0] = cells[i].state
+    //     }
+    // }
 
-// void printHexagon(int size)
-// { // indeksi sosed so [y-1][x-1][x+1] in [y][x-1][x-2] in [y+1][x-1][x-2]
-//     int i, j;
-//     for (i = 0; i < ROWS; i++)
-//     {
-//         for (j = 0; j < COLUMNS - i - 1; j++)
-//             printf(".");
+    // void printHexagon(int size)
+    // { // indeksi sosed so [y-1][x-1][x+1] in [y][x-1][x-2] in [y+1][x-1][x-2]
+    //     int i, j;
+    //     for (i = 0; i < ROWS; i++)
+    //     {
+    //         for (j = 0; j < COLUMNS - i - 1; j++)
+    //             printf(".");
 
-//         for (j = 0; j < size; j++)
-//         {
-//             if (j == size - 1)
-//                 printf("*");
-//             else
-//                 printf("*.");
-//         }
+    //         for (j = 0; j < size; j++)
+    //         {
+    //             if (j == size - 1)
+    //                 printf("*");
+    //             else
+    //                 printf("*.");
+    //         }
 
-//         for (j = size - i; j < size; j++)
-//             printf(".");
+    //         for (j = size - i; j < size; j++)
+    //             printf(".");
 
-//         printf("\n");
-//     }
-// }
+    //         printf("\n");
+    //     }
+    // }

@@ -5,8 +5,10 @@
 #include <time.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include "constants.h"
+#include <device_launch_parameters.h>
+#include "../constants.h"
 #include "modelCUDA.h"
+#include "helper_cuda.h"
 
 // compile
 // nvcc mainCUDA.cu -O2  -o mainCUDA
@@ -22,106 +24,124 @@ __global__ void testGPU()
     printf("Hello world from the GPU!\n");
 }
 
-__global__ void get_states(Cell *cells, double *stateTemp, int size)
+__global__ void stop_sim(Cell *d_cells,int end)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if (x < size && cells[x].type != 3) // ne presežem limite slike
+    if (x < NUM_CELLS ) // ne presežem limite slike
     {
-        // average_state(cells[j].neighbors, cells);
-    }
-}
-
-void printTab(int **tab, int j, int mappIdx)
-{
-    for (int i = 0; i < 6; i++)
-    {
-        printf("%d->%d |(%2d,%2d) ", j, mappIdx, tab[i][0], tab[i][1]); // x y
-    }
-}
-
-void printmapped(int **tab, int j, int x, int *mapp)
-{
-    for (int i = 0; i < 6; i++)
-    {
-        printf("[%d,%d]  (%2d,%2d)->%d |", j, x, tab[i][0], tab[i][1], mapp[i]); // x y
-    }
-}
-
-void printStructs(Cell *cells)
-{
-    for (int i = 0; i < ROWS * COLUMNS; i++)
-    {
-        printf("id:%d,\ttype: %d,\tstate: %lf,\tneighbors: ", cells[i].id, cells[i].type, cells[i].state);
-
-        for (int j = 0; j < NUM_NEIGHBORS; j++)
-            printf("%d, ", cells[i].neighbors[j]);
-
-        printf("\n");
-    }
-}
-
-void parallel_cuda(Cell *cells)
-{
-    float average = 0;
-    double *g_stateTemp;
-    cudaMalloc((void **)&g_stateTemp, NUM_CELLS * sizeof(double));
-    // init g_stateTemp on GPU
-
-    for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
-    {
-        for (int j = 0; j < NUM_CELLS; j++) // posodobi vsa stanja - difuzija, konvekcija
+       // Če je ena od sosed celice tipa edge, prekini simulacijo
+      
+        for (int k = 0; k < NUM_NEIGHBORS; k++)
         {
-            // We deal with one cell at the time, do not deal with edge type
-            if (cells[j].type != 3)
+            if (d_cells[x].type == 1 && d_cells[x].neighbors[k] == 3)
             {
-                // Calculate average state of neighbors, needs current cell's neighbours and pointer to all cells
-
-                // average = average_state(cells[j].neighbors, cells);
-
-                // stateTemp[j] = change_state(cells[j].type, cells[j].state, average);
-                //  cells[j].state = change_state(cells[j].type, cells[j].state, average);
+                printf("break %d\n", x);
+                
+                end = 1;
             }
         }
 
-        for (int j = 0; j < NUM_CELLS; j++) // sedaj posodobi tipe celic
-        {
-            cells[j].state = stateTemp[j];
-            if (cells[j].state >= 1)
-            {
-                cells[j].type = 0; // turns into ice cell
-                set_type_boundary(cells, cells[j].neighbors);
-            }
-        }
+    }
+    
+}
+__global__ void cell_type(Cell *d_cells,double *stateTemp)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
 
-        // Če je ena od sosed celice tipa edge, prekini simulacijo
-        for (int j = 0; j < NUM_CELLS; j++)
-        {
-            for (int k = 0; k < NUM_NEIGHBORS; k++)
+    if (x < NUM_CELLS ) // ne presežem limite slike
+    {
+        d_cells[x].state = stateTemp[x];
+        if (d_cells[x].state >= 1)
             {
-                if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
+                d_cells[x].type = 0; // turns into ice cell
+                for (int i = 0; i < NUM_NEIGHBORS; i++)
                 {
-                    printf("break %d\n", i);
-                    i = STEPS;
-                    j = NUM_CELLS;
-                    break;
+                    int sosed=d_cells[x].neighbors[i];
+                    // Preveri, da je valid sosed
+                    if (sosed >= 0)
+                    {
+                        // Dodeli tip boundary le, če ni frozen ali edge
+                        if (d_cells[sosed].type != 0 && d_cells[sosed].type != 3)
+                            d_cells[sosed].type = 1;
+                    }
+                }
+            }
+    }
+}
+
+__global__ void get_states(Cell *d_cells,double *stateTemp, int size)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (x < size && d_cells[x].type!=3) // ne presežem limite slike
+    {
+
+        double state = d_cells[x].state;
+        double average = 0.0;
+        int* neighbors = d_cells[x].neighbors;
+        for (int i = 0; i < NUM_NEIGHBORS; i++)
+        {   
+            
+            int sosed= neighbors[i];
+            //printf("sosed: %d \t ||",sosed);
+            if (sosed >= 0)
+            {
+                // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
+                if (d_cells[sosed].type > 1)
+                {
+                    average += d_cells[sosed].state;
+                    //printf("x %d je: %d => %f \n",x,sosed,d_cells[sosed].state);
                 }
             }
         }
 
-        // printf("Step: %d ----------------------------------------------------------\n", i);
+        average = average/ NUM_NEIGHBORS;
 
-        // for (int k = 0; k < NUM_CELLS; k++)
-        // {
-        //     if (cells[k].type == 0 || cells[k].type == 1)
-        //         printf("id: %d,\ttype: %d,\tstate: %lf\n", k, cells[k].type, cells[k].state);
-        // }
-        // printf("\n");
-
-        if (i % 20 == 0)
-            draw_board(cells);
+        int type = d_cells[x].type;
+        if (type < 2)
+        {
+            state = state + (ALPHA / 2) * average + GAMMA;
+        }
+        //  unreceptive, edge
+        else
+        {
+            state = state + ALPHA / 2 * (average - state);
+        }
+     
+        
+        stateTemp[x] =  state;  // cells[x].state + double((ALPHA/2)) + GAMMA; //state;
     }
-    free(stateTemp);
+}
+
+
+void parallel_cuda(Cell *d_cells,Cell *cells)
+{
+    double *d_stateTemp;
+    checkCudaErrors(cudaMalloc((void **)&d_stateTemp, NUM_CELLS * sizeof(double)));
+    int blockSize = 512;
+    int numBlocks = (NUM_CELLS + blockSize - 1) / blockSize;
+
+    for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
+    {
+        // update states of board
+        get_states<<<numBlocks, blockSize>>>(d_cells, d_stateTemp, NUM_CELLS);
+        cudaDeviceSynchronize(); 
+        cell_type<<<numBlocks, blockSize>>>(d_cells, d_stateTemp);
+        cudaDeviceSynchronize();
+
+        int end=0;
+        stop_sim<<<numBlocks, blockSize>>>(d_cells,end);
+        cudaDeviceSynchronize(); 
+        if( end==1) {
+            i=STEPS;
+        }
+        // printf("Step: %d ----------------------------------------------------------\n", i);
+        //draw_board(cells); 
+    }
+    checkCudaErrors(cudaMemcpy(cells, d_cells, NUM_CELLS * sizeof(Cell), cudaMemcpyDeviceToHost));
+    getLastCudaError("printGPU() execution failed\n");
+    cudaFree(d_stateTemp);
 }
 void check_CUDA() // function to copy into GPU memory
 {
@@ -142,19 +162,15 @@ void run_CUDA(Cell *cells)
 {
     // Allocate memory on GPU
     Cell *d_cells;
-    cudaMalloc((void **)&d_cells, NUM_CELLS * sizeof(Cell));
+    checkCudaErrors(cudaMalloc((void **)&d_cells, NUM_CELLS * sizeof(Cell)));
+    checkCudaErrors(cudaMemcpy(d_cells, cells, NUM_CELLS * sizeof(Cell), cudaMemcpyHostToDevice));
+    cudaDeviceSynchronize();
+    getLastCudaError("printGPU() execution failed\n");
 
-    // Copy data from CPU to GPU
-    cudaMemcpy(d_cells, cells, NUM_CELLS * sizeof(Cell), cudaMemcpyHostToDevice);
-
-    // Run kernel
-    parallel_cuda(d_cells);
-
-    // Copy data from GPU to CPU
-    cudaMemcpy(cells, d_cells, NUM_CELLS * sizeof(Cell), cudaMemcpyDeviceToHost);
-
+    parallel_cuda(d_cells,cells);
     // Free memory on GPU
     cudaFree(d_cells);
+  
 }
 
 int main(int argc, char *argv[])
@@ -164,7 +180,7 @@ int main(int argc, char *argv[])
 
     // Definicija arraya s structi
     Cell *cells = (Cell *)malloc(NUM_CELLS * sizeof(*cells));
-
+      
     // Dodaj sosede in indekse v struct
     init_grid(cells);
 
@@ -173,22 +189,32 @@ int main(int argc, char *argv[])
 
     // ------------- Konec inicializacije ------------- //
 
-    clock_t start_time, end_time;
-    start_time = clock();
-    // draw_board(cells);
-    check_CUDA();
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
+
+    //draw_board(cells);
+
+    //check_CUDA();
+
+    run_CUDA(cells);
 
     // serial(cells);
-    // draw_board(cells);
+   // draw_board(cells);
 
-    end_time = clock();
-    printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    printf("Elapsed time: %0.3f milliseconds \n", milliseconds);
 
     // Free allocated memory
-    for (int i = 0; i < NUM_CELLS; i++)
-    {
-        free(cells[i].neighbors);
-    }
+    // for (int i = 0; i < NUM_CELLS; i++)
+    // {
+    //     free(cells[i].neighbors);
+    // }
     free(cells);
 
     return 0;

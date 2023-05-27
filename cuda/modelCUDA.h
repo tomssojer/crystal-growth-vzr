@@ -13,7 +13,7 @@ typedef struct Cell
     double state;
 
     // Neighbors of the cell [6] - [i1, i2, ...]
-    int *neighbors;
+    int neighbors[6];
 } Cell;
 
 void set_type_boundary(Cell *cells, int *neighbors)
@@ -259,7 +259,7 @@ void init_grid(Cell *cells)
             }
 
             // inicializacija pomnilnika
-            cells[index].neighbors = (int *)malloc(NUM_NEIGHBORS * sizeof(int));
+           // cells[index].neighbors = (int *)malloc(NUM_NEIGHBORS * sizeof(int));
 
             //  Vpis v strukturo
             memcpy(cells[index].neighbors, mapped_sosede, sizeof(int) * NUM_NEIGHBORS);
@@ -299,19 +299,19 @@ void draw_board(Cell *cells)
                 int tip = cells[clen].type;
                 if (tip == 0)
                 {
-                    printf("F.");
+                    printf("F ");
                 }
                 else if (tip == 1)
                 {
-                    printf("B.");
+                    printf("B ");
                 }
                 else if (tip == 2)
                 {
-                    printf("..");
+                    printf("  ");
                 }
                 else if (tip == 3 && j < stolpci - i - 1)
                 {
-                    printf("E.");
+                    printf("E ");
                 }
                 else if (tip == 3)
                 {
