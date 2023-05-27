@@ -50,11 +50,11 @@ with open(file_path) as file:
         # Add some coloured hexagons
         for x, y, c in zip(hcoord, vcoord, colors):
             color = c
-            hex = RegularPolygon((x, y), numVertices=6, radius=1.75 / 2.5, 
+            hex = RegularPolygon((x, y), numVertices=6, radius=1/1.3, 
                                     orientation=np.radians(0), facecolor=color)
             ax.add_patch(hex)
         # Also add scatter points in hexagon centres
         ax.scatter(hcoord, vcoord, c=[c for c in colors])
 
-        plt.savefig(f'img_{count}.png')
+        # plt.savefig(f'img_{count}.png')
         count += 1
