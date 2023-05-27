@@ -321,6 +321,7 @@ void draw_board(Cell *cells, FILE *file)
         }
         printf("\n");
     }
+    fprintf(file, "\n");
 }
 
 // void write_to_file(Cellice *cells, int **array_to_file)
