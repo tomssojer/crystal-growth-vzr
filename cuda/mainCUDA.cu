@@ -24,7 +24,53 @@ __global__ void testGPU()
     printf("Hello world from the GPU!\n");
 }
 
-__global__ void get_states(Cell *d_cells,Cell *h_cells,double *stateTemp, int size)
+__global__ void stop_sim(Cell *d_cells,int end)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (x < NUM_CELLS ) // ne presežem limite slike
+    {
+       // Če je ena od sosed celice tipa edge, prekini simulacijo
+      
+        for (int k = 0; k < NUM_NEIGHBORS; k++)
+        {
+            if (d_cells[x].type == 1 && d_cells[x].neighbors[k] == 3)
+            {
+                printf("break %d\n", x);
+                
+                end = 1;
+            }
+        }
+
+    }
+    
+}
+__global__ void cell_type(Cell *d_cells,double *stateTemp)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (x < NUM_CELLS ) // ne presežem limite slike
+    {
+        d_cells[x].state = stateTemp[x];
+        if (d_cells[x].state >= 1)
+            {
+                d_cells[x].type = 0; // turns into ice cell
+                for (int i = 0; i < NUM_NEIGHBORS; i++)
+                {
+                    int sosed=d_cells[x].neighbors[i];
+                    // Preveri, da je valid sosed
+                    if (sosed >= 0)
+                    {
+                        // Dodeli tip boundary le, če ni frozen ali edge
+                        if (d_cells[sosed].type != 0 && d_cells[sosed].type != 3)
+                            d_cells[sosed].type = 1;
+                    }
+                }
+            }
+    }
+}
+
+__global__ void get_states(Cell *d_cells,double *stateTemp, int size)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -34,7 +80,7 @@ __global__ void get_states(Cell *d_cells,Cell *h_cells,double *stateTemp, int si
         double state = d_cells[x].state;
         double average = 0.0;
         int* neighbors = d_cells[x].neighbors;
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < NUM_NEIGHBORS; i++)
         {   
             
             int sosed= neighbors[i];
@@ -50,7 +96,7 @@ __global__ void get_states(Cell *d_cells,Cell *h_cells,double *stateTemp, int si
             }
         }
 
-        average = average/ 6;
+        average = average/ NUM_NEIGHBORS;
 
         int type = d_cells[x].type;
         if (type < 2)
@@ -71,74 +117,30 @@ __global__ void get_states(Cell *d_cells,Cell *h_cells,double *stateTemp, int si
 
 void parallel_cuda(Cell *d_cells,Cell *cells)
 {
-    //printf("x: delaaaa %d\t",NUM_CELLS);
-    double *stateT= (double*)calloc(NUM_CELLS, sizeof(double));
-       
     double *d_stateTemp;
     checkCudaErrors(cudaMalloc((void **)&d_stateTemp, NUM_CELLS * sizeof(double)));
-    //cudaMemset(d_stateTemp, 0, NUM_CELLS * sizeof(double));
-    //init d_stateTemp on GPU
-    
-    int blockSize = 128;
+    int blockSize = 512;
     int numBlocks = (NUM_CELLS + blockSize - 1) / blockSize;
+
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
     {
-        //cudaMemcpy(d_cells, cells, NUM_CELLS * sizeof(Cell), cudaMemcpyHostToDevice);
-        //cudaDeviceSynchronize();
         // update states of board
-        get_states<<<numBlocks, blockSize>>>(d_cells,cells, d_stateTemp, NUM_CELLS);
+        get_states<<<numBlocks, blockSize>>>(d_cells, d_stateTemp, NUM_CELLS);
         cudaDeviceSynchronize(); 
-        checkCudaErrors(cudaMemcpy(stateT, d_stateTemp, NUM_CELLS * sizeof(double), cudaMemcpyDeviceToHost));
-
-        //Cell *cells2 = (Cell *)malloc(NUM_CELLS * sizeof(*cells2));
-        checkCudaErrors(cudaMemcpy(cells, d_cells, NUM_CELLS * sizeof(Cell), cudaMemcpyDeviceToHost));
+        cell_type<<<numBlocks, blockSize>>>(d_cells, d_stateTemp);
         cudaDeviceSynchronize();
-        //printf("tu\n");
-        // for (int k = 0; k < NUM_CELLS; k++)
-        // {
-        //     //stateT[k]=0;
-        //   printf("average: %lf\n",stateT[k]);
-        // }
-        // for(int i=0; i< NUM_CELLS;i++ ) {
-        //     for(int j=0;j<6;j++) {
-        //         printf("%d\n",cells2[i].neighbors[j]);
-        //     }
-        // }
-        //free(cells2);
-            
-        // }
-        for (int j = 0; j < NUM_CELLS; j++) // sedaj posodobi tipe celic
-        {
-            cells[j].state = stateT[j];
-            if (cells[j].state >= 1)
-            {
-                cells[j].type = 0; // turns into ice cell
-                set_type_boundary(cells, cells[j].neighbors);
-            }
-        }
 
-        // Če je ena od sosed celice tipa edge, prekini simulacijo
-        for (int j = 0; j < NUM_CELLS; j++)
-        {
-            for (int k = 0; k < NUM_NEIGHBORS; k++)
-            {
-                if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
-                {
-                    printf("break %d\n", i);
-                    i = STEPS;
-                    j = NUM_CELLS;
-                    break;
-                }
-            }
+        int end=0;
+        stop_sim<<<numBlocks, blockSize>>>(d_cells,end);
+        cudaDeviceSynchronize(); 
+        if( end==1) {
+            i=STEPS;
         }
-
         // printf("Step: %d ----------------------------------------------------------\n", i);
-        //draw_board(cells);
-        checkCudaErrors(cudaMemcpy(d_cells, cells, NUM_CELLS * sizeof(Cell), cudaMemcpyHostToDevice));
-        
+        //draw_board(cells); 
     }
+    checkCudaErrors(cudaMemcpy(cells, d_cells, NUM_CELLS * sizeof(Cell), cudaMemcpyDeviceToHost));
     getLastCudaError("printGPU() execution failed\n");
-    free(stateT);
     cudaFree(d_stateTemp);
 }
 void check_CUDA() // function to copy into GPU memory
@@ -162,24 +164,10 @@ void run_CUDA(Cell *cells)
     Cell *d_cells;
     checkCudaErrors(cudaMalloc((void **)&d_cells, NUM_CELLS * sizeof(Cell)));
     checkCudaErrors(cudaMemcpy(d_cells, cells, NUM_CELLS * sizeof(Cell), cudaMemcpyHostToDevice));
-
     cudaDeviceSynchronize();
+    getLastCudaError("printGPU() execution failed\n");
 
- 
-     getLastCudaError("printGPU() execution failed\n");
-    // for(int i=0;i<NUM_CELLS;i++ ) {
-    //     checkCudaErrors(cudaMemcpy(d_cells[i].neighbors, cells[i].neighbors, 6 * sizeof(int), cudaMemcpyHostToDevice));
-    // }
-    //printf("se dela");
-    // Run kernel
     parallel_cuda(d_cells,cells);
-    printf(" se dela 2\n");
-    // Copy data from GPU to CPU
-       //cudaDeviceSynchronize();
-   //Cell *cells2 = (Cell *)malloc(2*NUM_CELLS * sizeof(*cells));
-
-    //checkCudaErrors(cudaMemcpy(cells, d_cells, NUM_CELLS * sizeof(Cell), cudaMemcpyDeviceToHost));
-
     // Free memory on GPU
     cudaFree(d_cells);
   
@@ -206,14 +194,14 @@ int main(int argc, char *argv[])
     cudaEventCreate(&stop);
     cudaEventRecord(start);
 
-    draw_board(cells);
+    //draw_board(cells);
 
     //check_CUDA();
-    printf("Starting simulation...\n");
+
     run_CUDA(cells);
 
     // serial(cells);
-    draw_board(cells);
+   // draw_board(cells);
 
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);

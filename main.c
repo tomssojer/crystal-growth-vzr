@@ -6,6 +6,8 @@
 #include "constants.h"
 #include "model.h"
 
+// gcc main.c -o main
+
 void printTab(int **tab, int j, int mappIdx)
 {
     for (int i = 0; i < 6; i++)
@@ -96,7 +98,7 @@ void serial(Cell *cells)
         // }
         // printf("\n");
 
-        draw_board(cells);
+        //draw_board(cells);
     }
     free(stateTemp);
 }
@@ -136,7 +138,7 @@ int main(int argc, int *argv[])
     draw_board(cells);
 
     end_time = clock();
-    printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
+    printf("Time elapsed: %.3lf seconds\n", 1000*(double)(end_time - start_time) / CLOCKS_PER_SEC);
 
     // Free allocated memory
     for (int i = 0; i < NUM_CELLS; i++)

@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include "constants.h"
 
-typedef struct Cellice
+typedef struct Cell
 {
-    // Cellice id
+    // Cell id
     int id;
 
     // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
@@ -14,9 +14,9 @@ typedef struct Cellice
 
     // Neighbors of the cell [6] - [i1, i2, ...]
     int *neighbors;
-} Cellice;
+} Cell;
 
-void set_type_boundary(Cellice *cells, int *neighbors)
+void set_type_boundary(Cell *cells, int *neighbors)
 {
 
     for (int i = 0; i < NUM_NEIGHBORS; i++)
@@ -32,7 +32,7 @@ void set_type_boundary(Cellice *cells, int *neighbors)
     }
 }
 
-void init_state(Cellice *cells)
+void init_state(Cell *cells)
 {
     for (int i = 0; i < NUM_CELLS; i++)
     {
@@ -68,7 +68,7 @@ double change_state(int type, double state, double average) // pohitritev aplha 
 }
 
 // Average state for diffusion
-double average_state(int *neighbors, Cellice *cells) // dobi cel seznam
+double average_state(int *neighbors, Cell *cells) // dobi cel seznam
 {
     double average = 0;
     int count = 0;
@@ -93,7 +93,7 @@ double average_state(int *neighbors, Cellice *cells) // dobi cel seznam
     return average;
 }
 
-void init_grid(Cellice *cells)
+void init_grid(Cell *cells)
 {
     //  sosede velikosti 6 sosed -2(x,y) ;
     //  index 0 ZGORAJ LEVO index 1 ZGORAJ DESNO | Y-1, X-1 X+1
@@ -283,12 +283,11 @@ void init_grid(Cellice *cells)
 }
 
 // function for visualization of board
-void draw_board(Cellice *cells, FILE *file, int **array_to_file)
+void draw_board(Cell *cells)
 {
     int columns = 6;
     int stolpci = 3 * COLUMNS - 2;
-    int index = 0;
-
+    int clen = 0;
     for (int i = 0; i < ROWS; i++)
     {
         for (int j = 0; j < stolpci; j++)
@@ -297,64 +296,36 @@ void draw_board(Cellice *cells, FILE *file, int **array_to_file)
             if (j >= (COLUMNS - i - 1) && j < stolpci - i)
             {
                 // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
-                int type = cells[index].type;
-                if (type == 0)
-                    printf("F.");
-                else if (type == 1)
-                    printf("B.");
-                else if (type == 2)
-                    printf("..");
-                else if (type == 3 && j < stolpci - i - 1)
-                    printf("E.");
-                else if (type == 3)
+                int tip = cells[clen].type;
+                if (tip == 0)
+                {
+                    printf("F ");
+                }
+                else if (tip == 1)
+                {
+                    printf("B ");
+                }
+                else if (tip == 2)
+                {
+                    printf("  ");
+                }
+                else if (tip == 3 && j < stolpci - i - 1)
+                {
+                    printf("E ");
+                }
+                else if (tip == 3)
+                {
                     printf("E");
+                }
                 // printf("*.");
                 j++;
-                index++;
-
-                array_to_file[index] = ;
+                clen++;
             }
             else
+            {
                 printf(" ");
+            }
         }
         printf("\n");
     }
 }
-
-// void write_to_file(Cellice *cells, int **array_to_file)
-// {
-//     FILE *file = fopen("output_serial", "w");
-//     if (file == NULL)
-//     {
-//         printf("Could not open file.")
-//             exit(-1);
-//     }
-
-//     for (int i = 0; i < SIZE; i++)
-//     {
-//         array_to_file[i][0] = cells[i].state
-//     }
-// }
-
-// void printHexagon(int size)
-// { // indeksi sosed so [y-1][x-1][x+1] in [y][x-1][x-2] in [y+1][x-1][x-2]
-//     int i, j;
-//     for (i = 0; i < ROWS; i++)
-//     {
-//         for (j = 0; j < COLUMNS - i - 1; j++)
-//             printf(".");
-
-//         for (j = 0; j < size; j++)
-//         {
-//             if (j == size - 1)
-//                 printf("*");
-//             else
-//                 printf("*.");
-//         }
-
-//         for (j = size - i; j < size; j++)
-//             printf(".");
-
-//         printf("\n");
-//     }
-// }

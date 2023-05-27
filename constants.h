@@ -1,8 +1,8 @@
 // number of rows
-#define ROWS 10
+#define ROWS 1000
 
 // number of columns
-#define COLUMNS 10
+#define COLUMNS 1000
 
 // total number of cells
 #define NUM_CELLS ROWS *COLUMNS
@@ -20,4 +20,4 @@
 #define GAMMA 0.0048
 
 // število korakov simulacije
-#define STEPS 100
+#define STEPS 900
