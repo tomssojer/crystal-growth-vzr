@@ -1,8 +1,8 @@
 // number of rows
-#define ROWS 1000
+#define ROWS 8000
 
 // number of columns
-#define COLUMNS 1000
+#define COLUMNS 8000
 
 // total number of cells
 #define NUM_CELLS ROWS *COLUMNS
@@ -21,3 +21,8 @@
 
 // število korakov simulacije
 #define STEPS 900
+
+
+// GPU paralel
+// 3412.7 ms  -> 1000*1000 polje, A = 1.2, B=0.68, G = 0.0048, STEPS=900
+// 57439.346 ms CPU SERIAL

@@ -5,7 +5,7 @@
 #include <time.h>
 #include "constants.h"
 #include "modelMP.h"
-
+// gcc main.c -o main
 void printTab(int **tab, int j, int mappIdx)
 {
     for (int i = 0; i < 6; i++)

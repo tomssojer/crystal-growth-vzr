@@ -133,9 +133,9 @@ int main(int argc, int *argv[])
     clock_t start_time, end_time;
     start_time = clock();
 
-    draw_board(cells);
+    //draw_board(cells);
     serial(cells);
-    draw_board(cells);
+    //draw_board(cells);
 
     end_time = clock();
     printf("Time elapsed: %.3lf seconds\n", 1000*(double)(end_time - start_time) / CLOCKS_PER_SEC);
