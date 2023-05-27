@@ -42,7 +42,7 @@ void printStructs(Cell *cells)
 // 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
 // 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
 
-void serial(Cell *cells)
+void serial(Cell *cells, FILE *file)
 {
     float average = 0;
     double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
@@ -95,8 +95,11 @@ void serial(Cell *cells)
         //         printf("id: %d,\ttype: %d,\tstate: %lf\n", k, cells[k].type, cells[k].state);
         // }
         // printf("\n");
-
-        draw_board(cells);
+        if (i % STEPS_TO_DRAW == 0)
+        {
+            printf("Step number: %d\n", i);
+            draw_board(cells, file);
+        }
     }
     free(stateTemp);
 }
@@ -105,17 +108,6 @@ int main(int argc, int *argv[])
 {
     // // ------------- Začetek inicializacije ------------- //
     // printHexagon(ROWS); //
-
-    char *file_name[30];
-    // Ime datoteke - odvisno od št vrstic, alfe, bete, game
-    sprintf(file_name, "serial_%d_%f_%f_%f.txt", ROWS, ALPHA, BETA, GAMMA);
-    FILE *file = fopen(file_name, "w");
-
-    if (file == NULL)
-    {
-        printf("Could not open file.")
-            exit(-1);
-    }
 
     // Definicija arraya s structi
     Cell *cells = malloc(NUM_CELLS * sizeof(*cells));
@@ -126,17 +118,28 @@ int main(int argc, int *argv[])
     // Določi začetno vrednost glede na tip celice
     init_state(cells);
 
+    // Ime datoteke - odvisno od št vrstic, alfe, bete, game
+    char *file_name = "serial_array.txt";
+    FILE *file = fopen(file_name, "w");
+
+    if (file == NULL)
+    {
+        printf("Could not open file.");
+        exit(-1);
+    }
     // ------------- Konec inicializacije ------------- //
 
     clock_t start_time, end_time;
     start_time = clock();
 
-    draw_board(cells);
-    serial(cells);
-    draw_board(cells);
+    serial(cells, file);
+    printf("Step number: %d\n", STEPS);
+    draw_board(cells, file);
 
     end_time = clock();
     printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
+
+    fclose(file);
 
     // Free allocated memory
     for (int i = 0; i < NUM_CELLS; i++)

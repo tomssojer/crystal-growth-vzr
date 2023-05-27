@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include "constants.h"
 
-typedef struct Cellice
+typedef struct Cell
 {
-    // Cellice id
+    // Cell id
     int id;
 
     // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
@@ -14,9 +14,9 @@ typedef struct Cellice
 
     // Neighbors of the cell [6] - [i1, i2, ...]
     int *neighbors;
-} Cellice;
+} Cell;
 
-void set_type_boundary(Cellice *cells, int *neighbors)
+void set_type_boundary(Cell *cells, int *neighbors)
 {
 
     for (int i = 0; i < NUM_NEIGHBORS; i++)
@@ -32,7 +32,7 @@ void set_type_boundary(Cellice *cells, int *neighbors)
     }
 }
 
-void init_state(Cellice *cells)
+void init_state(Cell *cells)
 {
     for (int i = 0; i < NUM_CELLS; i++)
     {
@@ -68,7 +68,7 @@ double change_state(int type, double state, double average) // pohitritev aplha 
 }
 
 // Average state for diffusion
-double average_state(int *neighbors, Cellice *cells) // dobi cel seznam
+double average_state(int *neighbors, Cell *cells) // dobi cel seznam
 {
     double average = 0;
     int count = 0;
@@ -93,7 +93,7 @@ double average_state(int *neighbors, Cellice *cells) // dobi cel seznam
     return average;
 }
 
-void init_grid(Cellice *cells)
+void init_grid(Cell *cells)
 {
     //  sosede velikosti 6 sosed -2(x,y) ;
     //  index 0 ZGORAJ LEVO index 1 ZGORAJ DESNO | Y-1, X-1 X+1
@@ -283,18 +283,18 @@ void init_grid(Cellice *cells)
 }
 
 // function for visualization of board
-void draw_board(Cellice *cells, FILE *file, int **array_to_file)
+void draw_board(Cell *cells, FILE *file)
 {
-    int columns = 6;
     int stolpci = 3 * COLUMNS - 2;
     int index = 0;
 
     for (int i = 0; i < ROWS; i++)
     {
+        int null_elements = COLUMNS - i - 1;
+
         for (int j = 0; j < stolpci; j++)
         {
-
-            if (j >= (COLUMNS - i - 1) && j < stolpci - i)
+            if (j >= null_elements && j < stolpci - i)
             {
                 // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
                 int type = cells[index].type;
@@ -308,20 +308,23 @@ void draw_board(Cellice *cells, FILE *file, int **array_to_file)
                     printf("E.");
                 else if (type == 3)
                     printf("E");
-                // printf("*.");
+
+                fprintf(file, "%d ", i);
+                fprintf(file, "%d ", j);
+                fprintf(file, "%d ", type);
+
                 j++;
                 index++;
-
-                array_to_file[index] = ;
             }
             else
                 printf(" ");
         }
         printf("\n");
     }
+    fprintf(file, "\n");
 }
 
-// void write_to_file(Cellice *cells, int **array_to_file)
+// void write_to_file(Cell *cells, int **array_to_file)
 // {
 //     FILE *file = fopen("output_serial", "w");
 //     if (file == NULL)

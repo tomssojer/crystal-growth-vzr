@@ -21,3 +21,6 @@
 
 // število korakov simulacije
 #define STEPS 100
+
+// število iteracij za izpis
+#define STEPS_TO_DRAW 20
