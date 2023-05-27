@@ -5,6 +5,7 @@
 #include <time.h>
 #include "constants.h"
 #include "modelMP.h"
+#include <omp.h>
 
 void printTab(int **tab, int j, int mappIdx)
 {
@@ -42,8 +43,14 @@ void printStructs(Cell *cells)
 // 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
 // 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
 
+
+
 void serial(Cell *cells)
 {
+    #pragma omp barrier
+    #pragma omp parallel for collapse(4){ // uporabil sem gnezdenje da se vsi štirje loop izvajajo, samo nisem prepričan če nebi bilo bolje brez ali pa samo 2
+                                          //  barrier condition sem dodal zato da se niti počakajo preden gremo naprej 
+                                        // znotraj parralizacije sem vključil tudi edge pogoj preverjanje.
     float average = 0;
     double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
 
@@ -99,6 +106,7 @@ void serial(Cell *cells)
         //draw_board(cells);
     }
     free(stateTemp);
+    }
 }
 
 int main(int argc, int *argv[])
