@@ -1,8 +1,8 @@
 // number of rows
-#define ROWS 60
+#define ROWS 1000
 
 // number of columns
-#define COLUMNS 60
+#define COLUMNS 1000
 
 // total number of cells
 #define NUM_CELLS ROWS *COLUMNS
@@ -21,3 +21,6 @@
 
 // število korakov simulacije
 #define STEPS 100
+
+// število iteracij za izpis
+#define STEPS_TO_DRAW 20
