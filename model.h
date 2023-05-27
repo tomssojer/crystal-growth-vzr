@@ -283,7 +283,7 @@ void init_grid(Cell *cells)
 }
 
 // function for visualization of board
-void draw_board(Cell *cells, FILE *file)
+void draw_board(Cell *cells)
 {
     int stolpci = 3 * COLUMNS - 2;
     int index = 0;
@@ -291,7 +291,6 @@ void draw_board(Cell *cells, FILE *file)
     for (int i = 0; i < ROWS; i++)
     {
         int null_elements = COLUMNS - i - 1;
-
         for (int j = 0; j < stolpci; j++)
         {
             if (j >= null_elements && j < stolpci - i)
@@ -309,10 +308,6 @@ void draw_board(Cell *cells, FILE *file)
                 else if (type == 3)
                     printf("E");
 
-                fprintf(file, "%d ", i);
-                fprintf(file, "%d ", j);
-                fprintf(file, "%d ", type);
-
                 j++;
                 index++;
             }
@@ -321,23 +316,32 @@ void draw_board(Cell *cells, FILE *file)
         }
         printf("\n");
     }
-    fprintf(file, "\n");
 }
 
-// void write_to_file(Cellice *cells, int **array_to_file)
-// {
-//     FILE *file = fopen("output_serial", "w");
-//     if (file == NULL)
-//     {
-//         printf("Could not open file.")
-//             exit(-1);
-//     }
+void write_to_file(Cell *cells, FILE *file)
+{
+    int stolpci = 3 * COLUMNS - 2;
+    int index = 0;
 
-//     for (int i = 0; i < SIZE; i++)
-//     {
-//         array_to_file[i][0] = cells[i].state
-//     }
-// }
+    for (int i = 0; i < ROWS; i++)
+    {
+        int null_elements = COLUMNS - i - 1;
+        for (int j = 0; j < stolpci; j++)
+        {
+            if (j >= null_elements && j < stolpci - i)
+            {
+                int type = cells[index].type;
+                fprintf(file, "%d ", i);
+                fprintf(file, "%d ", j);
+                fprintf(file, "%d ", type);
+
+                j++;
+                index++;
+            }
+        }
+    }
+    fprintf(file, "\n");
+}
 
 // void printHexagon(int size)
 // { // indeksi sosed so [y-1][x-1][x+1] in [y][x-1][x-2] in [y+1][x-1][x-2]

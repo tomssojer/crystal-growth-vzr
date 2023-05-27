@@ -6,8 +6,6 @@
 #include "constants.h"
 #include "model.h"
 
-// gcc main.c -o main
-
 void printTab(int **tab, int j, int mappIdx)
 {
     for (int i = 0; i < 6; i++)
@@ -89,18 +87,11 @@ void serial(Cell *cells, FILE *file)
             }
         }
 
-        // printf("Step: %d ----------------------------------------------------------\n", i);
-
-        // for (int k = 0; k < NUM_CELLS; k++)
-        // {
-        //     if (cells[k].type == 0 || cells[k].type == 1)
-        //         printf("id: %d,\ttype: %d,\tstate: %lf\n", k, cells[k].type, cells[k].state);
-        // }
-        // printf("\n");
         if (i % STEPS_TO_DRAW == 0)
         {
             printf("Step number: %d\n", i);
-            draw_board(cells, file);
+            draw_board(cells);
+            write_to_file(cells, file);
         }
     }
     free(stateTemp);
@@ -136,7 +127,8 @@ int main(int argc, int *argv[])
 
     serial(cells, file);
     printf("Step number: %d\n", STEPS);
-    draw_board(cells, file);
+    draw_board(cells);
+    write_to_file(cells, file);
 
     end_time = clock();
     printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);

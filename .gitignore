@@ -2,3 +2,5 @@
 main
 mainCUDA
 Test
+output*
+serial*
