@@ -58,12 +58,12 @@ void serial(Cell *cells, FILE *file)
             }
         }
 
-        if (i % STEPS_TO_DRAW == 0)
-        {
-            // printf("Step number: %d\n", i);
-            draw_board(cells);
-            // write_to_file(cells, file);
-        }
+        // if (i % STEPS_TO_DRAW == 0)
+        // {
+        //     // printf("Step number: %d\n", i);
+        //     draw_board(cells);
+        //     // write_to_file(cells, file);
+        // }
     }
     free(stateTemp);
 }
@@ -107,10 +107,6 @@ int main(int argc, int *argv[])
     fclose(file);
 
     // Free allocated memory
-    for (int i = 0; i < NUM_CELLS; i++)
-    {
-        free(cells[i].neighbors);
-    }
     free(cells);
 
     return 0;
