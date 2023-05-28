@@ -67,7 +67,18 @@ __global__ void cell_type(Cell *d_cells, double *stateTemp)
                 {
                     // Dodeli tip boundary le, če ni frozen ali edge
                     if (d_cells[sosed].type != 0 && d_cells[sosed].type != 3)
+                    {
                         d_cells[sosed].type = 1;
+                        // for (int k = 0; k < NUM_NEIGHBORS; k++)
+                        // {
+                        //     if (d_cells[x].neighbors[k] == 3)
+                        //     {
+                        //         printf("break %d\n", x);
+                        //         stopProcessing = true;
+                        //         // return something  to driver function so it stops
+                        //     }
+                        // }
+                    }
                 }
             }
         }
@@ -126,6 +137,7 @@ void parallel_cuda(Cell *d_cells, Cell *cells)
 
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
     {
+        bool stopFlagValue;
         // update states of board
         get_states<<<numBlocks, blockSize>>>(d_cells, d_stateTemp, NUM_CELLS);
         cudaDeviceSynchronize();
@@ -134,7 +146,6 @@ void parallel_cuda(Cell *d_cells, Cell *cells)
 
         stop_sim<<<numBlocks, blockSize>>>(d_cells);
         cudaDeviceSynchronize();
-        bool stopFlagValue;
         cudaMemcpyFromSymbol(&stopFlagValue, stopProcessing, sizeof(bool));
 
         if (stopFlagValue)

@@ -13,6 +13,23 @@ typedef struct Cell
     int neighbors[NUM_NEIGHBORS];
 } Cell;
 
+void set_type_boundary_serial(Cell *cells, int j)
+{
+
+    for (int i = 0; i < NUM_NEIGHBORS; i++)
+    {
+        int sosed = cells[j].neighbors[i];
+        if (sosed >= 0)
+        {
+            if (cells[sosed].type == 0)
+            {
+                cells[j].type = 1;
+                break;
+            }
+        }
+    }
+}
+
 void set_type_boundary(Cell *cells, int *neighbors)
 {
 

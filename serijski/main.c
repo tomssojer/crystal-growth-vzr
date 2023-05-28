@@ -40,6 +40,14 @@ void serial(Cell *cells, FILE *file)
             {
                 cells[j].type = 0; // turns into ice cell
                 set_type_boundary(cells, cells[j].neighbors);
+                // for (int k = 0; k < NUM_NEIGHBORS; k++)
+                // {
+                //     if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
+                //     {
+                //         printf("break %d\n", i);
+                //         i = STEPS;
+                //     }
+                // }
             }
         }
 
