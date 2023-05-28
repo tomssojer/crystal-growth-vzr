@@ -3,37 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include "constants.h"
-#include "modelMPI.h"
-
-void printTab(int **tab, int j, int mappIdx)
-{
-    for (int i = 0; i < 6; i++)
-    {
-        printf("%d->%d |(%2d,%2d) ", j, mappIdx, tab[i][0], tab[i][1]); // x y
-    }
-}
-
-void printmapped(int **tab, int j, int x, int *mapp)
-{
-    for (int i = 0; i < 6; i++)
-    {
-        printf("[%d,%d]  (%2d,%2d)->%d |", j, x, tab[i][0], tab[i][1], mapp[i]); // x y
-    }
-}
-
-void printStructs(Cell *cells)
-{
-    for (int i = 0; i < ROWS * COLUMNS; i++)
-    {
-        printf("id:%d,\ttype: %d,\tstate: %lf,\tneighbors: ", cells[i].id, cells[i].type, cells[i].state);
-
-        for (int j = 0; j < NUM_NEIGHBORS; j++)
-            printf("%d, ", cells[i].neighbors[j]);
-
-        printf("\n");
-    }
-}
+#include "../constants.h"
+#include "model.h"
 
 // 1. Začni z eno frozen celico, okoli nje so boundary
 // 2. Za vse celice, ki so boundary in unreceptive poteka difuzija
@@ -42,7 +13,7 @@ void printStructs(Cell *cells)
 // 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
 // 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
 
-void serial(Cell *cells)
+void serial(Cell *cells, FILE *file)
 {
     float average = 0;
     double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
@@ -79,7 +50,7 @@ void serial(Cell *cells)
             {
                 if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
                 {
-                    printf("break %d\n",i);
+                    printf("break %d\n", i);
                     i = STEPS;
                     j = NUM_CELLS;
                     break;
@@ -87,16 +58,12 @@ void serial(Cell *cells)
             }
         }
 
-        //printf("Step: %d ----------------------------------------------------------\n", i);
-
-        // for (int k = 0; k < NUM_CELLS; k++)
-        // {
-        //     if (cells[k].type == 0 || cells[k].type == 1)
-        //         printf("id: %d,\ttype: %d,\tstate: %lf\n", k, cells[k].type, cells[k].state);
-        // }
-        // printf("\n");
-
-        //draw_board(cells);
+        if (i % STEPS_TO_DRAW == 0)
+        {
+            // printf("Step number: %d\n", i);
+            draw_board(cells);
+            // write_to_file(cells, file);
+        }
     }
     free(stateTemp);
 }
@@ -107,7 +74,7 @@ int main(int argc, int *argv[])
     // printHexagon(ROWS); //
 
     // Definicija arraya s structi
-    Cell *cells = malloc(NUM_CELLS * sizeof *cells);
+    Cell *cells = malloc(NUM_CELLS * sizeof(*cells));
 
     // Dodaj sosede in indekse v struct
     init_grid(cells);
@@ -115,17 +82,29 @@ int main(int argc, int *argv[])
     // Določi začetno vrednost glede na tip celice
     init_state(cells);
 
+    // Ime datoteke - odvisno od št vrstic, alfe, bete, game
+    char *file_name = "serial_array.txt";
+    FILE *file = fopen(file_name, "w");
+
+    if (file == NULL)
+    {
+        printf("Could not open file.");
+        exit(-1);
+    }
     // ------------- Konec inicializacije ------------- //
 
     clock_t start_time, end_time;
     start_time = clock();
 
+    serial(cells, file);
+    // printf("Step number: %d\n", STEPS);
     draw_board(cells);
-    serial(cells);
-    draw_board(cells);
+    // write_to_file(cells, file);
 
     end_time = clock();
     printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
+
+    fclose(file);
 
     // Free allocated memory
     for (int i = 0; i < NUM_CELLS; i++)

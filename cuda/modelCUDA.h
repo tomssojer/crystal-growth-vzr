@@ -3,9 +3,6 @@
 
 typedef struct Cell
 {
-    // Cell id
-    int id;
-
     // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
     int type;
 
@@ -259,11 +256,10 @@ void init_grid(Cell *cells)
             }
 
             // inicializacija pomnilnika
-           // cells[index].neighbors = (int *)malloc(NUM_NEIGHBORS * sizeof(int));
+            // cells[index].neighbors = (int *)malloc(NUM_NEIGHBORS * sizeof(int));
 
             //  Vpis v strukturo
             memcpy(cells[index].neighbors, mapped_sosede, sizeof(int) * NUM_NEIGHBORS);
-            cells[index].id = index;
             index++;
         }
     }

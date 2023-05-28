@@ -1,11 +1,8 @@
 #include <stdio.h>
-#include "constants.h"
+#include "../constants.h"
 
 typedef struct Cell
 {
-    // Cell id
-    int id;
-
     // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
     int type;
 
@@ -13,7 +10,7 @@ typedef struct Cell
     double state;
 
     // Neighbors of the cell [6] - [i1, i2, ...]
-    int *neighbors;
+    int neighbors[6];
 } Cell;
 
 void set_type_boundary(Cell *cells, int *neighbors)
@@ -54,39 +51,43 @@ double change_state(int type, double state, double average) // pohitritev aplha 
     {
         state = state + ALPHA / 2 * average + GAMMA;
     }
-        //  unreceptive, edge
+    //  unreceptive, edge
     else
     {
         state = state + ALPHA / 2 * (average - state);
     }
 
-    // Konvekcija
-    // if (type == 0 || type == 1)
-    //     state += GAMMA;
-
     return state;
 }
 
 // Average state for diffusion
-double average_state(int *neighbors, Cell *cells) // dobi cel seznam
+double average_state(Cell *cell_buffer, Cell *top_process, Cell *bottom_process, int start_process, int end_process, int j)
 {
     double average = 0;
-    int count = 0;
-    for (int i = 0; i < NUM_NEIGHBORS; i++)
+    for (int k = 0; k < NUM_NEIGHBORS; k++)
     {
+        int sosed = cell_buffer[j].neighbors[k];
         // check if neighbour exists
-        if (neighbors[i] >= 0)
+        if (sosed >= 0)
         {
-            // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
-            if (cells[neighbors[i]].type > 1)
+            if (sosed < end_process && sosed >= start_process)
             {
-                average += cells[neighbors[i]].state;
-                count++;
+                // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
+                if (cell_buffer[sosed - start_process].type > 1)
+                    average += cell_buffer[sosed - start_process].state;
+            }
+            else if (sosed >= end_process)
+            {
+                if (bottom_process[sosed - start_process].type > 1)
+                    average += bottom_process[sosed].state; // end_process ali end_process-1?
+            }
+            else if (sosed < start_process)
+            {
+                if (top_process[sosed].type > 1)
+                    average += top_process[sosed].state; // se 1 start prej rabim
             }
         }
     }
-    if (count == 0)
-        return average;
 
     average /= 6;
 
@@ -178,7 +179,7 @@ void init_grid(Cell *cells)
                     sosede[1][1] = -1;
                 }
             }
-                // Če ni zgornjih sosed
+            // Če ni zgornjih sosed
             else
             {
                 sosede[0][0] = -1;
@@ -249,7 +250,7 @@ void init_grid(Cell *cells)
                     sosede[5][1] = -1;
                 }
             }
-                // Če ni spodnjih sosed
+            // Če ni spodnjih sosed
             else
             {
                 sosede[4][0] = -1;
@@ -259,11 +260,10 @@ void init_grid(Cell *cells)
             }
 
             // inicializacija pomnilnika
-            cells[index].neighbors = (int *)malloc(NUM_NEIGHBORS * sizeof(int));
+            // cells[index].neighbors = (int *)malloc(NUM_NEIGHBORS * sizeof(int));
 
             //  Vpis v strukturo
             memcpy(cells[index].neighbors, mapped_sosede, sizeof(int) * NUM_NEIGHBORS);
-            cells[index].id = index;
             index++;
         }
     }
@@ -285,70 +285,60 @@ void init_grid(Cell *cells)
 // function for visualization of board
 void draw_board(Cell *cells)
 {
-    int columns = 6;
     int stolpci = 3 * COLUMNS - 2;
-    int clen = 0;
+    int index = 0;
+
     for (int i = 0; i < ROWS; i++)
     {
+        int null_elements = COLUMNS - i - 1;
         for (int j = 0; j < stolpci; j++)
         {
-
-            if (j >= (COLUMNS - i - 1) && j < stolpci - i)
+            if (j >= null_elements && j < stolpci - i)
             {
                 // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
-                int tip = cells[clen].type;
-                if (tip == 0)
-                {
-                    printf("F.");
-                }
-                else if (tip == 1)
-                {
-                    printf("B.");
-                }
-                else if (tip == 2)
-                {
-                    printf("..");
-                }
-                else if (tip == 3 && j < stolpci - i - 1)
-                {
-                    printf("E.");
-                }
-                else if (tip == 3)
-                {
+                int type = cells[index].type;
+                if (type == 0)
+                    printf("F ");
+                else if (type == 1)
+                    printf("B ");
+                else if (type == 2)
+                    printf("  ");
+                else if (type == 3 && j < stolpci - i - 1)
+                    printf("E ");
+                else if (type == 3)
                     printf("E");
-                }
-                // printf("*.");
+
                 j++;
-                clen++;
+                index++;
             }
             else
-            {
                 printf(" ");
-            }
         }
         printf("\n");
     }
 }
 
-// void printHexagon(int size)
-// { // indeksi sosed so [y-1][x-1][x+1] in [y][x-1][x-2] in [y+1][x-1][x-2]
-//     int i, j;
-//     for (i = 0; i < ROWS; i++)
-//     {
-//         for (j = 0; j < COLUMNS - i - 1; j++)
-//             printf(".");
+void write_to_file(Cell *cells, FILE *file)
+{
+    int stolpci = 3 * COLUMNS - 2;
+    int index = 0;
 
-//         for (j = 0; j < size; j++)
-//         {
-//             if (j == size - 1)
-//                 printf("*");
-//             else
-//                 printf("*.");
-//         }
+    for (int i = 0; i < ROWS; i++)
+    {
+        int null_elements = COLUMNS - i - 1;
+        for (int j = 0; j < stolpci; j++)
+        {
+            if (j >= null_elements && j < stolpci - i)
+            {
+                int type = cells[index].type;
+                fprintf(file, "%d ", i);
+                fprintf(file, "%d ", j);
+                fprintf(file, "%d ", type);
 
-//         for (j = size - i; j < size; j++)
-//             printf(".");
-
-//         printf("\n");
-//     }
-// }
+                j++;
+                index++;
+            }
+        }
+    }
+    fprintf(file, "\n");
+}

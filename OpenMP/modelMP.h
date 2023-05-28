@@ -3,9 +3,6 @@
 
 typedef struct Cellice
 {
-    // Cellice id
-    int id;
-
     // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
     int type;
 
@@ -263,7 +260,6 @@ void init_grid(Cellice *cells)
 
             //  Vpis v strukturo
             memcpy(cells[index].neighbors, mapped_sosede, sizeof(int) * NUM_NEIGHBORS);
-            cells[index].id = index;
             index++;
         }
     }

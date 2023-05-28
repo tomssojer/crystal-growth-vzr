@@ -7,35 +7,6 @@
 #include "modelMP.h"
 #include <omp.h>
 
-void printTab(int **tab, int j, int mappIdx)
-{
-    for (int i = 0; i < 6; i++)
-    {
-        printf("%d->%d |(%2d,%2d) ", j, mappIdx, tab[i][0], tab[i][1]); // x y
-    }
-}
-
-void printmapped(int **tab, int j, int x, int *mapp)
-{
-    for (int i = 0; i < 6; i++)
-    {
-        printf("[%d,%d]  (%2d,%2d)->%d |", j, x, tab[i][0], tab[i][1], mapp[i]); // x y
-    }
-}
-
-void printStructs(Cell *cells)
-{
-    for (int i = 0; i < ROWS * COLUMNS; i++)
-    {
-        printf("id:%d,\ttype: %d,\tstate: %lf,\tneighbors: ", cells[i].id, cells[i].type, cells[i].state);
-
-        for (int j = 0; j < NUM_NEIGHBORS; j++)
-            printf("%d, ", cells[i].neighbors[j]);
-
-        printf("\n");
-    }
-}
-
 // 1. Začni z eno frozen celico, okoli nje so boundary
 // 2. Za vse celice, ki so boundary in unreceptive poteka difuzija
 // 3. Za vse celice, ki so frozen in boundary poteka konvekcija
@@ -43,14 +14,12 @@ void printStructs(Cell *cells)
 // 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
 // 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
 
-
-
 void serial(Cell *cells)
 {
-    #pragma omp barrier
-    #pragma omp parallel for collapse(4){ // uporabil sem gnezdenje da se vsi štirje loop izvajajo, samo nisem prepričan če nebi bilo bolje brez ali pa samo 2
-                                          //  barrier condition sem dodal zato da se niti počakajo preden gremo naprej 
-                                        // znotraj parralizacije sem vključil tudi edge pogoj preverjanje.
+#pragma omp barrier
+#pragma omp parallel for collapse(4) { // uporabil sem gnezdenje da se vsi štirje loop izvajajo, samo nisem prepričan če nebi bilo bolje brez ali pa samo 2
+                                       //  barrier condition sem dodal zato da se niti počakajo preden gremo naprej
+                                       // znotraj parralizacije sem vključil tudi edge pogoj preverjanje.
     float average = 0;
     double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
 
@@ -86,7 +55,7 @@ void serial(Cell *cells)
             {
                 if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
                 {
-                    printf("break %d\n",i);
+                    printf("break %d\n", i);
                     i = STEPS;
                     j = NUM_CELLS;
                     break;
@@ -94,7 +63,7 @@ void serial(Cell *cells)
             }
         }
 
-        //printf("Step: %d ----------------------------------------------------------\n", i);
+        // printf("Step: %d ----------------------------------------------------------\n", i);
 
         // for (int k = 0; k < NUM_CELLS; k++)
         // {
@@ -103,10 +72,10 @@ void serial(Cell *cells)
         // }
         // printf("\n");
 
-        //draw_board(cells);
+        // draw_board(cells);
     }
     free(stateTemp);
-    }
+}
 }
 
 int main(int argc, int *argv[])

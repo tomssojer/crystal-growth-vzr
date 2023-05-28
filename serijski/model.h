@@ -1,11 +1,8 @@
 #include <stdio.h>
-#include "constants.h"
+#include "../constants.h"
 
 typedef struct Cell
 {
-    // Cell id
-    int id;
-
     // Type of cell (0 - frozen, 1 - boundary, 2 - unreceptive, 3 - edge)
     int type;
 
@@ -71,7 +68,7 @@ double change_state(int type, double state, double average) // pohitritev aplha 
 double average_state(int *neighbors, Cell *cells) // dobi cel seznam
 {
     double average = 0;
-    int count = 0;
+    // int count = 0;
     for (int i = 0; i < NUM_NEIGHBORS; i++)
     {
         // check if neighbour exists
@@ -81,12 +78,12 @@ double average_state(int *neighbors, Cell *cells) // dobi cel seznam
             if (cells[neighbors[i]].type > 1)
             {
                 average += cells[neighbors[i]].state;
-                count++;
+                // count++;
             }
         }
     }
-    if (count == 0)
-        return average;
+    // if (count == 0)
+    //     return average;
 
     average /= 6;
 
@@ -263,7 +260,6 @@ void init_grid(Cell *cells)
 
             //  Vpis v strukturo
             memcpy(cells[index].neighbors, mapped_sosede, sizeof(int) * NUM_NEIGHBORS);
-            cells[index].id = index;
             index++;
         }
     }
@@ -342,26 +338,3 @@ void write_to_file(Cell *cells, FILE *file)
     }
     fprintf(file, "\n");
 }
-
-// void printHexagon(int size)
-// { // indeksi sosed so [y-1][x-1][x+1] in [y][x-1][x-2] in [y+1][x-1][x-2]
-//     int i, j;
-//     for (i = 0; i < ROWS; i++)
-//     {
-//         for (j = 0; j < COLUMNS - i - 1; j++)
-//             printf(".");
-
-//         for (j = 0; j < size; j++)
-//         {
-//             if (j == size - 1)
-//                 printf("*");
-//             else
-//                 printf("*.");
-//         }
-
-//         for (j = size - i; j < size; j++)
-//             printf(".");
-
-//         printf("\n");
-//     }
-// }
