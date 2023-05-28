@@ -68,25 +68,40 @@ double average_state(Cell *cell_buffer, Cell *top_process, Cell *bottom_process,
     {
         int sosed = cell_buffer[j].neighbors[k];
         // check if neighbour exists
-        if (sosed >= 0)
+        printf("Sosed: %d, %d, %d, %d, %lf\n", j, k, sosed, cell_buffer[j].type, cell_buffer[j].state);
+        /*if (sosed >= 0)
         {
+            // Indeksi sosedov znotraj bufferja
             if (sosed < end_process && sosed >= start_process)
             {
-                // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
-                if (cell_buffer[sosed - start_process].type > 1)
-                    average += cell_buffer[sosed - start_process].state;
+                // printf("cell_buffer[sosed - start_process].state: %lf\n", cell_buffer[sosed - start_process].state);
+                if (cell_buffer[sosed - start_process - 1].type > 1)
+                {
+                    average += cell_buffer[sosed - start_process - 1].state;
+                    // printf("Current process index: %d\n", sosed - start_process - 1);
+                }
             }
+            // Indeksi sosedov, ki segajo čez buffer
             else if (sosed >= end_process)
             {
-                if (bottom_process[sosed - start_process].type > 1)
-                    average += bottom_process[sosed].state; // end_process ali end_process-1?
+                // printf("index bot %d\n", sosed - end_process);
+                if (bottom_process[sosed - end_process].type > 1)
+                {
+                    // printf("Bottom process index: %d\t", sosed - end_process);
+                    average += bottom_process[sosed - end_process].state;
+                }
             }
+            // Indeksi sosedov, ki so pred bufferjem
             else if (sosed < start_process)
             {
-                if (top_process[sosed].type > 1)
-                    average += top_process[sosed].state; // se 1 start prej rabim
+                // printf("index TOP %d\n", start_process - sosed - 1);
+                if (top_process[start_process - sosed - 1].type > 1)
+                {
+                    //   printf("Top process index: %d\t", start_process - sosed - 1);
+                    average += top_process[start_process - sosed - 1].state;
+                }
             }
-        }
+        }*/
     }
 
     average /= 6;

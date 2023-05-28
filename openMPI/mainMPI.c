@@ -27,7 +27,14 @@ int main(int argc, char *argv[])
     char node_name[MPI_MAX_PROCESSOR_NAME]; // node name
     int name_len;                           // true length of node name
 
-    if (id == 0)
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_p);
+    MPI_Comm_rank(MPI_COMM_WORLD, &id);
+
+    // Čas
+    double start_time = MPI_Wtime();
+
+    if (id != -1)
     {
 
         // Definicija arraya s structi
@@ -40,14 +47,11 @@ int main(int argc, char *argv[])
         init_state(cells);
         draw_board(cells);
     }
+
+    if (id == 0)
+        for (int i = 0; i < 6; i++)
+            printf("Number 50: %d\n", cells[50].neighbors[i]);
     // ------------- Konec inicializacije ------------- //
-
-    // Čas
-    double start_time = MPI_Wtime();
-
-    MPI_Init(&argc, &argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_p);
-    MPI_Comm_rank(MPI_COMM_WORLD, &id);
 
     int cells_per_process = NUM_CELLS / num_p; // ROWS*COLUMNS / procesors
     int rows_per_process = ROWS / num_p;
@@ -87,21 +91,26 @@ int main(int argc, char *argv[])
     Cell *bottom_process = malloc(COLUMNS * sizeof(Cell));
 
     // Scatter work
-    if (id == 0)
-    {
-        MPI_Scatter(cells, rows_per_process, row_type, cell_buffer, rows_per_process, row_type, 0, MPI_COMM_WORLD);
-    }
+
+    MPI_Scatter(cells, rows_per_process, row_type, cell_buffer, rows_per_process, row_type, 0, MPI_COMM_WORLD);
+
+    // if (id == 0)
+    // {
+    //     for (int i = 0; i < cells_per_process; i++)
+    //     {
+    //         if (cell_buffer[i].type == 1)
+    //             printf("Cell buffer: %d, %lf, %d\n", cell_buffer[i].type, cell_buffer[i].state, cell_buffer[i].neighbors[0]);
+    //     }
+    // }
 
     // --------- driver code ----------//
     float average = 0;
     double *stateTemp = (double *)malloc(cells_per_process * sizeof(double));
     double *state_temp_array = (double *)malloc(NUM_CELLS * sizeof(double));
 
-    for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
+    for (int i = 0; i < 1; i++) // iteracije, oz stanja po casu
     {
-
-        // Send data to others and receive
-        MPI_Sendrecv(&cell_buffer[0], 1, row_type, (id + num_p - 1) % num_p, 0,
+        MPI_Sendrecv(&cell_buffer[rows_per_process - 1], 1, row_type, (id + num_p - 1) % num_p, 0,
                      top_process, 1, row_type, (id + 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 
@@ -109,11 +118,22 @@ int main(int argc, char *argv[])
                      bottom_process, 1, row_type, (id + num_p - 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 
+        if (id == 0)
+        {
+            for (int j = 0; j < COLUMNS; j++)
+            {
+                for (int k = 0; k < 6; k++)
+                    printf("Sosed: %d, %d, %lf, %d\n", j, bottom_process[j].type, bottom_process[j].state, bottom_process[j].neighbors[k]);
+            }
+        }
+        // Send data to others and receive
+
         for (int j = start_process; j < end_process; j++) // posodobi vsa stanja - difuzija, konvekcija
         {
             // We deal with one cell at the time, do not deal with edge type
             if (cell_buffer[j].type != 3)
             {
+                // if (id == 1)
                 // Calculate average state of neighbors, needs current cell's neighbours and pointer to all cells
                 // average = average_state(cell_buffer, top_process, bottom_process, start_process, end_process, j);
 
