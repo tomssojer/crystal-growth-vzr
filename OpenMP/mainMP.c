@@ -15,14 +15,14 @@
 // 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
 // 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
 
-void open_MPI(Cell *cells, FILE *file)
+void open_MPI(Cell *cells, FILE *file,int num_threds)
 {
     double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
 
     
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
     {
-        #pragma omp parallel for schedule(dynamic,NUM_CELLS/8)   // atomicne ven
+        #pragma omp parallel for schedule(dynamic,NUM_CELLS/num_threds)   // atomicne ven
         for (int j = 0; j < NUM_CELLS; j++) // posodobi vsa stanja - difuzija, konvekcija
         {
             // We deal with one cell at the time, do not deal with edge type
@@ -36,7 +36,7 @@ void open_MPI(Cell *cells, FILE *file)
             }
         }
 
-        #pragma omp parallel for schedule(dynamic,NUM_CELLS/8) 
+        #pragma omp parallel for schedule(dynamic,NUM_CELLS/num_threds) 
         for (int j = 0; j < NUM_CELLS; j++) // sedaj posodobi tipe celic
         {
             cells[j].state = stateTemp[j];
@@ -48,7 +48,7 @@ void open_MPI(Cell *cells, FILE *file)
         }
         int exitFlag = 0;
         // Če je ena od sosed celice tipa edge, prekini simulacijo
-        #pragma omp parallel for schedule(dynamic,NUM_CELLS/8) shared(exitFlag) 
+        #pragma omp parallel for schedule(dynamic,NUM_CELLS/num_threds) shared(exitFlag) 
         for (int j = 0; j < NUM_CELLS; j++)
         {
             for (int k = 0; k < NUM_NEIGHBORS; k++)
@@ -115,7 +115,7 @@ int main(int argc, int *argv[])
 
    double dt = omp_get_wtime();
 
-    open_MPI(cells, file);
+    open_MPI(cells, file,num_threds);
     // write_to_file(cells, file);
 
     dt = omp_get_wtime() - dt;
