@@ -18,7 +18,6 @@
 void open_MPI(Cell *cells, FILE *file,int num_threds)
 {
     double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
-
     
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
     {
@@ -44,6 +43,14 @@ void open_MPI(Cell *cells, FILE *file,int num_threds)
             {
                 cells[j].type = 0; // turns into ice cell
                 set_type_boundary(cells, cells[j].neighbors);
+                // for (int k = 0; k < NUM_NEIGHBORS; k++)
+                // {
+                //     if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
+                //     {
+                //         printf("break %d\n", i);
+                //         i = STEPS;
+                //     }
+                // }
             }
         }
         int exitFlag = 0;
@@ -76,6 +83,9 @@ void open_MPI(Cell *cells, FILE *file,int num_threds)
         //     // printf("Step number: %d\n", i);
         //     draw_board(cells);
         //     // write_to_file(cells, file);
+        //     // printf("Step number: %d\n", i);
+        //     draw_board(cells);
+        //     // write_to_file(cells, file);
         // }
     }
 
@@ -95,6 +105,7 @@ int main(int argc, int *argv[])
         }
     // Definicija arraya s structi
     Cell *cells = malloc(NUM_CELLS * sizeof(*cells));
+    Cell *cells = malloc(NUM_CELLS * sizeof(*cells));
 
     // Dodaj sosede in indekse v struct
     init_grid(cells);
@@ -102,6 +113,15 @@ int main(int argc, int *argv[])
     // Določi začetno vrednost glede na tip celice
     init_state(cells);
 
+    // Ime datoteke - odvisno od št vrstic, alfe, bete, game
+    char *file_name = "serial_array.txt";
+    FILE *file = fopen(file_name, "w");
+
+    // if (file == NULL)
+    // {
+    //     printf("Could not open file.");
+    //     exit(-1);
+    // }
     // Ime datoteke - odvisno od št vrstic, alfe, bete, game
     char *file_name = "serial_array.txt";
     FILE *file = fopen(file_name, "w");

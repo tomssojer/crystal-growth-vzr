@@ -45,15 +45,15 @@ int main(int argc, char *argv[])
     // ------------- Konec inicializacije ------------- //
 
     int cells_per_process = NUM_CELLS / num_p; // ROWS*COLUMNS / procesors
-    int rows_per_process = ROWS / num_p;
-    int start_process = id * cells_per_process;
-    int end_process = (id + 1) * cells_per_process;
+    int columns_per_process = COLUMNS / num_p;
+    int start_process = id * columns_per_process;
+    int end_process = (id + 1) * columns_per_process;
 
-    MPI_Datatype cell_type, cell_type_resized, row_type;
+    MPI_Datatype cell_type, cell_type_resized, column_type, column_type_resized;
 
+    // Definicija cell structov
     int lengths[3] = {1, 1, 6}; // dolzine podatkov
     MPI_Datatype types[3] = {MPI_INT, MPI_DOUBLE, MPI_INT};
-
     MPI_Aint displacements[3] = {offsetof(Cell, type), offsetof(Cell, state), offsetof(Cell, neighbors)};
     MPI_Aint lb, extent;
     MPI_Type_create_struct(3, lengths, displacements, types, &cell_type);
@@ -62,15 +62,17 @@ int main(int argc, char *argv[])
     MPI_Type_commit(&cell_type_resized);
     ///////////////////////////
 
-    MPI_Type_contiguous(COLUMNS, cell_type_resized, &row_type);
-    MPI_Type_commit(&row_type);
+    // Definicija column typa
+    MPI_Type_vector(ROWS, 1, ROWS, cell_type_resized, &column_type);
+    MPI_Type_create_resized(column_type, 0, sizeof(Cell), &column_type_resized);
+    MPI_Type_commit(&column_type);
 
     Cell *cell_buffer = malloc(cells_per_process * sizeof(Cell));
-    Cell *top_process = malloc(COLUMNS * sizeof(Cell));
-    Cell *bottom_process = malloc(COLUMNS * sizeof(Cell));
+    Cell *left_process = malloc(COLUMNS * sizeof(Cell));
+    Cell *right_process = malloc(COLUMNS * sizeof(Cell));
 
     // Scatter work
-    MPI_Scatter(cells, rows_per_process, row_type, cell_buffer, rows_per_process, row_type, 0, MPI_COMM_WORLD);
+    MPI_Scatter(cells, columns_per_process, column_type_resized, cell_buffer, columns_per_process, column_type_resized, 0, MPI_COMM_WORLD);
 
     // if (id == 0)
     // {
@@ -93,30 +95,48 @@ int main(int argc, char *argv[])
     //     state_temp_array = (double *)malloc(NUM_CELLS * sizeof(double));
     // }
 
-    for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
+    for (int i = 0; i < STEPS; i++)
     {
 
-        MPI_Sendrecv(&cell_buffer[cells_per_process - COLUMNS], 1, row_type, (id + 1) % num_p, 0,
-                     top_process, 1, row_type, (id + num_p - 1) % num_p, 0,
+        MPI_Sendrecv(&cell_buffer[0][columns_per_process - 1], 1, column_type_resized, (id + 1) % num_p, 0,
+                     left_process, 1, column_type_resized, (id + num_p - 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 
-        MPI_Sendrecv(&cell_buffer[0], 1, row_type, (id + num_p - 1) % num_p, 0,
-                     bottom_process, 1, row_type, (id + 1) % num_p, 0,
+        MPI_Sendrecv(&cell_buffer[0][0], 1, column_type_resized, (id + num_p - 1) % num_p, 0,
+                     right_process, 1, column_type_resized, (id + 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 
-        // Send data to others and receive
-        for (int j = 0; j < cells_per_process; j++) // posodobi vsa stanja - difuzija, konvekcija
+        // printf("id: %d send tag: %d recieve tag: %d \n", id, (id + 1) % num_p, (id + num_p - 1) % num_p);
+        //  if (id == 1)
+        //  {
+        //      for (int j = start_process; j < end_process; j++)
+        //      {
+        //          for (int k = 0; k < NUM_NEIGHBORS; k++)
+        //          {
+        //              int sosed = cell_buffer[j - start_process].neighbors[k];
+        //              printf("Sosed: %d, %d, %d, %d, %lf\n", j, k, sosed, cell_buffer[j - start_process].type, cell_buffer[j].state);
+        //          }
+        //      }
+
+        //     //     for (int j = 0; j < cells_per_process; j++)
+        //     //     {
+        //     //         for (int k = 0; k < 6; k++)
+        //     //             printf("Sosed: %d, %d, %lf, %d\n", j, cell_buffer[j].type, cell_buffer[j].state, cell_buffer[j].neighbors[k]);
+        //     //     }
+        // }
+        int count = 0;
+        for (int j = 0; j < cells_per_process; j++)
         {
-            // We deal with one cell at the time, do not deal with edge type
             if (cell_buffer[j].type != 3)
             {
-                // if (id == 1)
-                // Calculate average state of neighbors, needs current cell's neighbours and pointer to all cells
-                average = average_state(cell_buffer, top_process, bottom_process, start_process, end_process, j);
-
+                average = average_state(cell_buffer, left_process, right_process, start_process, end_process, j, count);
                 stateTemp[j] = change_state(cell_buffer[j].type, cell_buffer[j].state, average);
             }
-        } // mpi gather avrage values v enem celem arryju TO-DO
+            if (j % ROWS == 0)
+            {
+                count++;
+            }
+        }
 
         for (int j = 0; j < cells_per_process; j++) // sedaj posodobi tipe celic
         {
@@ -126,63 +146,22 @@ int main(int argc, char *argv[])
                 cell_buffer[j].type = 0; // turns into ice cell
             }
         }
+
         // Spet poslji zadnjo in prvo vrstico posodobljen buffer, da se izvede update celic
-        MPI_Sendrecv(&cell_buffer[cells_per_process - COLUMNS], 1, row_type, (id + 1) % num_p, 0,
-                     top_process, 1, row_type, (id + num_p - 1) % num_p, 0,
+        MPI_Sendrecv(&cell_buffer[0][columns_per_process - 1], 1, column_type_resized, (id + 1) % num_p, 0,
+                     left_process, 1, column_type_resized, (id + num_p - 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 
-        MPI_Sendrecv(&cell_buffer[0], 1, row_type, (id + num_p - 1) % num_p, 0,
-                     bottom_process, 1, row_type, (id + 1) % num_p, 0,
+        MPI_Sendrecv(&cell_buffer[0][0], 1, column_type_resized, (id + num_p - 1) % num_p, 0,
+                     right_process, 1, column_type_resized, (id + 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 
-        // // Če je ena od sosed celice tipa edge, prekini simulacijo
         for (int j = 0; j < cells_per_process; j++)
         {
             if (cell_buffer[j].type == 2)
-                set_type_boundary_MPI(cell_buffer, top_process, bottom_process, start_process, end_process, j);
+                set_type_boundary_MPI(cell_buffer, left_process, right_process, start_process, end_process, j);
         }
 
-        // int termination_flag = 0;
-        // for (int j = 0; j < cells_per_process; j++)
-        // {
-        //     for (int k = 0; k < NUM_NEIGHBORS; k++)
-        //     {
-        //         if (cell_buffer[j].type == 1)
-        //         {
-        //             int sosed = cell_buffer[j].neighbors[k];
-        //             if (sosed < end_process && sosed >= 0 && sosed >= start_process)
-        //             {
-        //                 sosed -= start_process;
-        //                 if (cell_buffer[sosed].type == 3)
-        //                 {
-        //                     MPI_Test(&request, &flag, &status);
-        //                     i = STEPS;
-        //                     j = cells_per_process;
-        //                     // MPI_Abort(MPI_COMM_WORLD, 0);
-        //                     // ali
-        //                     for (int x = 0; x < num_p; x++)
-        //                     {
-        //                         if (x != id)
-        //                         {
-        //                             termination_flag = 1;
-        //                             printf("breaking %d \n", x);
-        //                             MPI_Send(&termination_flag, 1, MPI_INT, x, 0, MPI_COMM_WORLD);
-        //                         }
-        //                     }
-        //                     // break;
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        // // MPI_Finalize();
-        // if (termination_flag)
-        // {
-        //     i = STEPS;
-        //     MPI_Cancel(&request);
-        //     MPI_Wait(&request, &status);
-        //     // break;
-        // }
         // if (id == 0 && i % STEPS_TO_DRAW == 0)
         // {
         //     MPI_Gather(cell_buffer, rows_per_process, row_type, cells, rows_per_process, row_type, 0, MPI_COMM_WORLD);
@@ -190,28 +169,27 @@ int main(int argc, char *argv[])
         // }
     }
 
-    MPI_Gather(cell_buffer, rows_per_process, row_type, cells, rows_per_process, row_type, 0, MPI_COMM_WORLD);
-    // --------- driver code ----------//
+    MPI_Gather(cell_buffer, columns_per_process, column_type_resized, cells, columns_per_process, column_type_resized, 0, MPI_COMM_WORLD);
 
     double end_time = MPI_Wtime();
 
     if (id == 0)
     {
-        draw_board(cells);
+        // draw_board(cells);
         printf("Time elapsed: %.3lf seconds\n", end_time - start_time);
-        //  Free allocated memory
     }
 
+    //  Free allocated memory
     free(cells);
-    free(top_process);
-    free(bottom_process);
+    free(left_process);
+    free(right_process);
     free(cell_buffer);
     free(stateTemp);
-    // free(state_temp_array);
 
     MPI_Type_free(&cell_type);
     MPI_Type_free(&cell_type_resized);
-    MPI_Type_free(&row_type);
+    MPI_Type_free(&column_type);
+    MPI_Type_free(&column_type_resized);
     MPI_Finalize();
 
     return 0;

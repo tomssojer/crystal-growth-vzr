@@ -10,16 +10,6 @@
 #include "modelCUDA.h"
 #include "helper_cuda.h"
 
-// compile
-// nvcc mainCUDA.cu -O2  -o mainCUDA
-
-// 1. Začni z eno frozen celico, okoli nje so boundary
-// 2. Za vse celice, ki so boundary in unreceptive poteka difuzija
-// 3. Za vse celice, ki so frozen in boundary poteka konvekcija
-// 3.a Upoštevaj, da le sosede, ki so edge ali unreceptive sharajo vodo
-// 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
-// 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
-
 __device__ bool stopProcessing = false;
 
 __global__ void testGPU()
@@ -131,11 +121,10 @@ __global__ void get_states(Cell *d_cells, double *stateTemp, int size)
     }
 }
 
-void parallel_cuda(Cell *d_cells, Cell *cells)
+void parallel_cuda(Cell *d_cells, Cell *cells, int blockSize)
 {
     double *d_stateTemp;
     checkCudaErrors(cudaMalloc((void **)&d_stateTemp, NUM_CELLS * sizeof(double)));
-    int blockSize = 256;
     int numBlocks = (NUM_CELLS + blockSize - 1) / blockSize;
 
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
@@ -187,7 +176,7 @@ void check_CUDA() // function to copy into GPU memory
     testGPU<<<1, 1>>>(); // gred size block size
     cudaDeviceSynchronize();
 }
-void run_CUDA(Cell *cells)
+void run_CUDA(Cell *cells, int blocksize)
 {
     // Allocate memory on GPU
     Cell *d_cells;
@@ -196,16 +185,23 @@ void run_CUDA(Cell *cells)
     cudaDeviceSynchronize();
     getLastCudaError("printGPU() execution failed\n");
 
-    parallel_cuda(d_cells, cells);
+    parallel_cuda(d_cells, cells, blocksize);
     // Free memory on GPU
     cudaFree(d_cells);
 }
 
 int main(int argc, char *argv[])
 {
-    // // ------------- Začetek inicializacije ------------- //
-    // printHexagon(ROWS); //
 
+    if (argc < 2) 
+    {
+        printf("Not enough arguments!\n");
+        return 1;
+    }
+
+    int blocksize = atoi(argv[1]);
+
+    // // ------------- Začetek inicializacije ------------- //
     // Definicija arraya s structi
     Cell *cells = (Cell *)malloc(NUM_CELLS * sizeof(*cells));
 
@@ -223,10 +219,7 @@ int main(int argc, char *argv[])
     cudaEventRecord(start);
 
     // draw_board(cells);
-
-    // check_CUDA();
-
-    run_CUDA(cells);
+    run_CUDA(cells, blocksize);
 
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
