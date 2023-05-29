@@ -1,7 +1,4 @@
 .vscode
-main
-mainCUDA
-Test
-output*
 serial*
 *txt
+run_*

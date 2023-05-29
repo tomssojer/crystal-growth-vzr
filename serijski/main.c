@@ -56,12 +56,16 @@ void serial(Cell *cells, FILE *file)
         {
             for (int k = 0; k < NUM_NEIGHBORS; k++)
             {
-                if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
+                int sosed = cells[j].neighbors[k];
+                if (sosed >= 0)
                 {
-                    // printf("break %d\n", i);
-                    i = STEPS;
-                    j = NUM_CELLS;
-                    break;
+                    if (cells[j].type == 1 && cells[sosed].type == 3)
+                    {
+                        printf("break %d\n", i);
+                        i = STEPS;
+                        j = NUM_CELLS;
+                        break;
+                    }
                 }
             }
         }
@@ -109,7 +113,7 @@ int main(int argc, int *argv[])
 
     end_time = clock();
     printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
-    // draw_board(cells);
+    draw_board(cells);
 
     fclose(file);
 

@@ -15,17 +15,15 @@ int main(int argc, char *argv[])
     Cell *cells = malloc(NUM_CELLS * sizeof *cells);
 
     // mpi init
-    int id;                                 // process id
-    int num_p;                              // total number of processes
-    int source;                             // sender id
-    int destination;                        // receiver id
-    int tag = 0;                            // message tag
-    int buffer[1];                          // message buffer
-    MPI_Status status;                      // message status
-    MPI_Request request;                    // MPI request
-    int flag;                               // request status flag
-    char node_name[MPI_MAX_PROCESSOR_NAME]; // node name
-    int name_len;                           // true length of node name
+    int id;              // process id
+    int num_p;           // total number of processes
+    int source;          // sender id
+    int destination;     // receiver id
+    int tag = 0;         // message tag
+    int buffer[1];       // message buffer
+    MPI_Status status;   // message status
+    MPI_Request request; // MPI request
+    int flag;            // request status flag
 
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &num_p);
@@ -179,19 +177,27 @@ int main(int argc, char *argv[])
         // if (id == 0)
         //     draw_board(cells);
 
-        // for (int j = 0; j < cells_per_process; j++)
-        // {
-        //     for (int k = 0; k < NUM_NEIGHBORS; k++)
-        //     {
-        //         if (cell_buffer[j].type == 1 && cell_buffer[j].neighbors[k] == 3)
-        //         {
-        //             printf("break %d\n", i);
-        //             i = STEPS;
-        //             j = cells_per_process;
-        //             break;
-        //         }
-        //     }
-        // }
+        for (int j = 0; j < cells_per_process; j++)
+        {
+            for (int k = 0; k < NUM_NEIGHBORS; k++)
+            {
+                if (cell_buffer[j].type == 1)
+                {
+                    int sosed = cell_buffer[j].neighbors[k] - start_process;
+                    if (sosed < cells_per_process && sosed >= 0 && sosed >= start_process)
+                    {
+                        if (cell_buffer[sosed].type == 3)
+                        {
+
+                            printf("break %d\n", i);
+                            i = STEPS;
+                            j = cells_per_process;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         // MPI_Gather(cell_buffer, rows_per_process, row_type, cells, rows_per_process, row_type, 0, MPI_COMM_WORLD);
         // for (int j = 0; j < NUM_CELLS; j++) // sedaj posodobi tipe celic
@@ -229,7 +235,7 @@ int main(int argc, char *argv[])
 
     if (id == 0)
     {
-        draw_board(cells);
+        // draw_board(cells);
         printf("Time elapsed: %.3lf seconds\n", end_time - start_time);
         //  Free allocated memory
     }

@@ -39,11 +39,14 @@ __global__ void stop_sim(Cell *d_cells)
 
             for (int k = 0; k < NUM_NEIGHBORS; k++)
             {
-                if (d_cells[x].neighbors[k] == 3)
+                int sosed = d_cells[x].neighbors[k];
+                if (sosed >= 0)
                 {
-                    // printf("break %d\n", x);
-                    stopProcessing = true;
-                    // return something  to driver function so it stops
+                    if (d_cells[sosed].type == 3)
+                    {
+                        // return something  to driver function so it stops
+                        stopProcessing = true;
+                    }
                 }
             }
         }
@@ -150,7 +153,7 @@ void parallel_cuda(Cell *d_cells, Cell *cells)
 
         if (stopFlagValue)
         {
-            // printf("\nSTEP breking %d\n", i);
+            printf("breking %d\n", i);
             i = STEPS;
             break;
         }
@@ -232,7 +235,7 @@ int main(int argc, char *argv[])
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("Elapsed time: %0.3f seconds \n", milliseconds / 1000);
 
-    // draw_board(cells);
+    draw_board(cells);
 
     // Free allocated memory
     free(cells);
