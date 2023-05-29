@@ -3,9 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include "constants.h"
-#include "modelMP.h"
-#include <omp.h>
+#include "../constants.h"
+#include "model.h"
 
 // 1. Začni z eno frozen celico, okoli nje so boundary
 // 2. Za vse celice, ki so boundary in unreceptive poteka difuzija
@@ -14,12 +13,8 @@
 // 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
 // 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
 
-void serial(Cell *cells)
+void serial(Cell *cells, FILE *file)
 {
-#pragma omp barrier
-#pragma omp parallel for collapse(4) { // uporabil sem gnezdenje da se vsi štirje loop izvajajo, samo nisem prepričan če nebi bilo bolje brez ali pa samo 2
-                                       //  barrier condition sem dodal zato da se niti počakajo preden gremo naprej
-                                       // znotraj parralizacije sem vključil tudi edge pogoj preverjanje.
     float average = 0;
     double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
 
@@ -45,6 +40,14 @@ void serial(Cell *cells)
             {
                 cells[j].type = 0; // turns into ice cell
                 set_type_boundary(cells, cells[j].neighbors);
+                // for (int k = 0; k < NUM_NEIGHBORS; k++)
+                // {
+                //     if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
+                //     {
+                //         printf("break %d\n", i);
+                //         i = STEPS;
+                //     }
+                // }
             }
         }
 
@@ -53,29 +56,28 @@ void serial(Cell *cells)
         {
             for (int k = 0; k < NUM_NEIGHBORS; k++)
             {
-                if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
+                int sosed = cells[j].neighbors[k];
+                if (sosed >= 0)
                 {
-                    printf("break %d\n", i);
-                    i = STEPS;
-                    j = NUM_CELLS;
-                    break;
+                    if (cells[j].type == 1 && cells[sosed].type == 3)
+                    {
+                        printf("break %d\n", i);
+                        i = STEPS;
+                        j = NUM_CELLS;
+                        break;
+                    }
                 }
             }
         }
 
-        // printf("Step: %d ----------------------------------------------------------\n", i);
-
-        // for (int k = 0; k < NUM_CELLS; k++)
+        // if (i % STEPS_TO_DRAW == 0)
         // {
-        //     if (cells[k].type == 0 || cells[k].type == 1)
-        //         printf("id: %d,\ttype: %d,\tstate: %lf\n", k, cells[k].type, cells[k].state);
+        //     // printf("Step number: %d\n", i);
+        //     draw_board(cells);
+        //     // write_to_file(cells, file);
         // }
-        // printf("\n");
-
-        // draw_board(cells);
     }
     free(stateTemp);
-}
 }
 
 int main(int argc, int *argv[])
@@ -84,7 +86,7 @@ int main(int argc, int *argv[])
     // printHexagon(ROWS); //
 
     // Definicija arraya s structi
-    Cell *cells = malloc(NUM_CELLS * sizeof *cells);
+    Cell *cells = malloc(NUM_CELLS * sizeof(*cells));
 
     // Dodaj sosede in indekse v struct
     init_grid(cells);
@@ -92,23 +94,30 @@ int main(int argc, int *argv[])
     // Določi začetno vrednost glede na tip celice
     init_state(cells);
 
+    // Ime datoteke - odvisno od št vrstic, alfe, bete, game
+    char *file_name = "serial_array.txt";
+    FILE *file = fopen(file_name, "w");
+
+    // if (file == NULL)
+    // {
+    //     printf("Could not open file.");
+    //     exit(-1);
+    // }
     // ------------- Konec inicializacije ------------- //
 
     clock_t start_time, end_time;
     start_time = clock();
 
-    draw_board(cells);
-    serial(cells);
-    draw_board(cells);
+    serial(cells, file);
+    // write_to_file(cells, file);
 
     end_time = clock();
     printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
+    draw_board(cells);
+
+    fclose(file);
 
     // Free allocated memory
-    for (int i = 0; i < NUM_CELLS; i++)
-    {
-        free(cells[i].neighbors);
-    }
     free(cells);
 
     return 0;
