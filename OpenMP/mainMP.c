@@ -54,11 +54,11 @@ int main(int argc, int *argv[])
 {
     // // ------------- Začetek inicializacije ------------- //
     // printHexagon(ROWS); //
-      //#pragma omp parallel
-       //{
-   // #pragma omp single
-            //printf("num_threads = %d\n", omp_get_num_threads());
-       // }
+      #pragma omp parallel
+       {
+        #pragma omp single
+            printf("num_threads = %d\n", omp_get_num_threads());
+       }
 
     // Definicija arraya s structi
     Cell *cells = malloc(NUM_CELLS * sizeof *cells);
