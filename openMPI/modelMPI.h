@@ -41,10 +41,9 @@ void set_type_boundary_MPI(Cell *cell_buffer, Cell *top_process, Cell *bottom_pr
     {
         int sosed = cell_buffer[j].neighbors[k];
 
-        // Preveri, da je valid sosed
         if (sosed >= 0)
         {
-            // preveri kje lezi sosed v top_process, cell_buffer ali bottom>_process
+            // preveri kje lezi sosed v top_process, cell_buffer ali bottom_process
             if (sosed < end_process && sosed >= start_process)
             {
                 // Dodeli tip boundary le, če ni frozen ali edge
@@ -82,7 +81,7 @@ double average_state(Cell *cell_buffer, Cell *top_process, Cell *bottom_process,
     for (int k = 0; k < NUM_NEIGHBORS; k++)
     {
         int sosed = cell_buffer[j].neighbors[k];
-        // check if neighbour exists
+
         if (sosed >= 0)
         {
             // Indeksi sosedov znotraj bufferja
@@ -96,20 +95,16 @@ double average_state(Cell *cell_buffer, Cell *top_process, Cell *bottom_process,
             // Indeksi sosedov, ki segajo čez buffer
             else if (sosed >= end_process)
             {
-                // printf("index bot %d\n", sosed - end_process);
                 if (bottom_process[sosed - end_process].type > 1)
                 {
-                    // printf("Bottom process index: %d\t", sosed - end_process);
                     average += bottom_process[sosed - end_process].state;
                 }
             }
             // Indeksi sosedov, ki so pred bufferjem
             else if (sosed < start_process)
             {
-                // printf("index TOP %d\n", start_process - sosed - 1);
                 if (top_process[sosed - start_process + COLUMNS].type > 1)
                 {
-                    //   printf("Top process index: %d\t", start_process - sosed - 1);
                     average += top_process[sosed - start_process + COLUMNS].state;
                 }
             }
@@ -121,117 +116,92 @@ double average_state(Cell *cell_buffer, Cell *top_process, Cell *bottom_process,
     return average;
 }
 
-// void set_type_boundary_column_MPI(Cell *cell_buffer, Cell *left_process, Cell *right_process, int start_process, int end_process, int j)
-// {
+void set_type_boundary_column_MPI(Cell *cell_buffer, Cell *left_process, Cell *right_process, int start_process, int end_process, int j)
+{
+    for (int k = 0; k < NUM_NEIGHBORS; k++)
+    {
+        int sosed = cell_buffer[j].neighbors[k];
 
-//     for (int k = 0; k < NUM_NEIGHBORS; k++)
-//     {
-//         int sosed = cell_buffer[j].neighbors[k];
+        if (sosed >= 0)
+        {
+            if (sosed % COLUMNS >= start_process && sosed % COLUMNS < end_process)
+            {
+                sosed = (sosed / COLUMNS) % ROWS + (sosed % COLUMNS) * ROWS;
+                if (cell_buffer[sosed].type == 0)
+                {
+                    cell_buffer[j].type = 1;
+                    break;
+                }
+            }
+            else
+            {
+                sosed = (sosed / COLUMNS) % ROWS;
 
-//         // Preveri, da je valid sosed
-//         if (sosed >= 0)
-//         {
-//             // preveri kje lezi sosed v top_process, cell_buffer ali bottom>_process
-//             if (sosed < end_process && sosed >= start_process)
-//             {
-//                 // Dodeli tip boundary le, če ni frozen ali edge
-//                 if (cell_buffer[sosed - start_process].type == 0)
-//                 {
-//                     cell_buffer[j].type = 1;
-//                     break;
-//                 }
-//             }
+                if (sosed % COLUMNS >= end_process)
+                {
+                    if (right_process[sosed].type == 0)
+                    {
+                        cell_buffer[j].type = 1;
+                        break;
+                    }
+                }
 
-//             else if (sosed >= end_process)
-//             {
-//                 if (bottom_process[sosed - end_process].type == 0)
-//                 {
-//                     cell_buffer[j].type = 1;
-//                     break;
-//                 }
-//             }
+                else if (sosed % COLUMNS < start_process)
+                {
+                    if (left_process[sosed].type == 0)
+                    {
+                        cell_buffer[j].type = 1;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
 
-//             else if (sosed < start_process)
-//             {
-//                 if (top_process[sosed - start_process + COLUMNS].type == 0)
-//                 {
-//                     cell_buffer[j].type = 1;
-//                     break;
-//                 }
-//             }
-//         }
-//     }
-// }
+double average_state_column(Cell *cell_buffer, Cell *left_process, Cell *right_process, int start_process, int end_process, int j)
+{
+    double average = 0;
 
-// // Average state for diffusion
-// double average_state_column(Cell *cell_buffer, Cell *left_process, Cell *right_process, int start_process, int end_process, int j, int count)
-// {
-//     double average = 0;
+    for (int k = 0; k < NUM_NEIGHBORS; k++)
+    {
+        int sosed = cell_buffer[j].neighbors[k];
+        if (sosed >= 0)
+        {
+            // sosed = (sosed - count) / ROWS + count * ROWS;
 
-//     for (int k = 0; k < NUM_NEIGHBORS; k++)
-//     {
-//         int sosed = cell_buffer[j].neighbors[k];
-//         // check if neighbour exists
-//         if (sosed >= 0)
-//         {
-//             sosed = (sosed - count) / ROWS + count * ROWS;
-//             if (sosed > end_process)
-//             {
+            if (sosed % COLUMNS >= start_process && sosed % COLUMNS < end_process)
+            {
+                sosed = (sosed / COLUMNS) % ROWS + (sosed % COLUMNS) * ROWS;
+                if (cell_buffer[sosed].type > 1)
+                {
+                    average += cell_buffer[sosed].state;
+                }
+                // if (cell_buffer[(sosed - count) / ROWS + count * ROWS].type > 1)
+                // {
+                //     average += cell_buffer[(sosed - count) / ROWS + count * ROWS].state;
+                // }
+            }
+            else
+            {
+                sosed = (sosed / COLUMNS) % ROWS;
 
-//             }
-//             // mapiraj soseda
-//             // || 0 | 6 |12 | 18| 24| 30 || 1 | 7 | 13| 19| 25 | 31 |,2,7,
-//             // || 0 | 1 | 2 | 3 | 4 | 5  || 6 | 7 | 8 | 9 | 10 | 11 |12| ; // komentaR
-//             // || 10 | 11 | 12 | 13 | 14 | | 15 | 16 | 17 | 18 | 19 ||; // komentaR
-//             if (sosed % COLUMNS >= start_process && sosed % COLUMNS < end_process)
-//             {
-//                 if (cell_buffer[(sosed - count) / ROWS + count * ROWS].type > 1)
-//                 {
-//                     average += cell_buffer[(sosed - count) / ROWS + count * ROWS].state;
-//                 }
-//             }
+                if (sosed % COLUMNS >= end_process)
+                {
+                    if (left_process[sosed].type > 1)
+                        average += left_process[sosed].state;
+                }
 
-//             if (sosed % COLUMNS >= end_process)
-//             {
-//                 // Pohandlaj desnega
-//                 if (cell_buffer[sosed])
-//                 {
-//                     average += right_process[]
-//                 }
-//             }
+                else if (sosed % COLUMNS < start_process)
+                {
+                    if (right_process[sosed].type > 1)
+                        average += right_process[sosed].state;
+                }
+            }
+        }
+    }
 
-//             // Indeksi sosedov znotraj bufferja
-//             if (sosed < end_process && sosed >= start_process)
-//             {
-//                 if (cell_buffer[sosed - start_process].type > 1)
-//                 {
-//                     average += cell_buffer[sosed - start_process].state;
-//                 }
-//             }
-//             // Indeksi sosedov, ki segajo čez buffer
-//             else if (sosed >= end_process)
-//             {
-//                 // printf("index bot %d\n", sosed - end_process);
-//                 if (bottom_process[sosed - end_process].type > 1)
-//                 {
-//                     // printf("Bottom process index: %d\t", sosed - end_process);
-//                     average += bottom_process[sosed - end_process].state;
-//                 }
-//             }
-//             // Indeksi sosedov, ki so pred bufferjem
-//             else if (sosed < start_process)
-//             {
-//                 // printf("index TOP %d\n", start_process - sosed - 1);
-//                 if (top_process[sosed - start_process + COLUMNS].type > 1)
-//                 {
-//                     //   printf("Top process index: %d\t", start_process - sosed - 1);
-//                     average += top_process[sosed - start_process + COLUMNS].state;
-//                 }
-//             }
-//         }
-//     }
+    average /= 6;
 
-//     average /= 6;
-
-//     return average;
-// }
+    return average;
+}

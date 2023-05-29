@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-// #include <mpi.h>
 #include "/usr/include/openmpi-x86_64/mpi.h"
 #include "../constants.h"
 #include "modelMPI.h"
@@ -35,10 +34,7 @@ int main(int argc, char *argv[])
     if (id == 0)
     {
         init_grid(cells);
-
-        // Določi začetno vrednost glede na tip celice
         init_state(cells);
-        // Dodaj sosede in indekse v struct
         // draw_board(cells);
     }
 
@@ -72,26 +68,9 @@ int main(int argc, char *argv[])
     // Scatter work
     MPI_Scatter(cells, rows_per_process, row_type, cell_buffer, rows_per_process, row_type, 0, MPI_COMM_WORLD);
 
-    // if (id == 0)
-    // {
-    //     for (int i = 0; i < cells_per_process; i++)
-    //     {
-    //         if (cell_buffer[i].type == 1)
-    //             printf("Cell buffer: %d, %lf, %d\n", cell_buffer[i].type, cell_buffer[i].state, cell_buffer[i].neighbors[0]);
-    //     }
-    // }
-
     // --------- driver code ----------//
     float average = 0;
     double *stateTemp = (double *)malloc(cells_per_process * sizeof(double));
-
-    // double *state_temp_array = NULL;
-
-    // if (id == 0)
-    // {
-    //     // Process 0 allocates memory to store gathered data
-    //     state_temp_array = (double *)malloc(NUM_CELLS * sizeof(double));
-    // }
 
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
     {
@@ -116,7 +95,7 @@ int main(int argc, char *argv[])
 
                 stateTemp[j] = change_state(cell_buffer[j].type, cell_buffer[j].state, average);
             }
-        } // mpi gather avrage values v enem celem arryju TO-DO
+        }
 
         for (int j = 0; j < cells_per_process; j++) // sedaj posodobi tipe celic
         {
@@ -197,7 +176,7 @@ int main(int argc, char *argv[])
 
     if (id == 0)
     {
-        draw_board(cells);
+        // draw_board(cells);
         printf("Time elapsed: %.3lf seconds\n", end_time - start_time);
         //  Free allocated memory
     }
@@ -207,7 +186,6 @@ int main(int argc, char *argv[])
     free(bottom_process);
     free(cell_buffer);
     free(stateTemp);
-    // free(state_temp_array);
 
     MPI_Type_free(&cell_type);
     MPI_Type_free(&cell_type_resized);

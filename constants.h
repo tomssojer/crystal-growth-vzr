@@ -1,5 +1,5 @@
 // number of rows
-#define ROWS 6000
+#define ROWS 200
 
 // number of columns
 #define COLUMNS ROWS

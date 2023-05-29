@@ -7,7 +7,7 @@
 #include "modelMP.h"
 #include <omp.h>
 
-// gcc -fopenmp -o mainMP mainMP.c --openmp -lm  
+// gcc -fopenmp -o mainMP mainMP.c --openmp -lm
 // 1. Začni z eno frozen celico, okoli nje so boundary
 // 2. Za vse celice, ki so boundary in unreceptive poteka difuzija
 // 3. Za vse celice, ki so frozen in boundary poteka konvekcija
@@ -15,27 +15,27 @@
 // 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
 // 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
 
-void open_MPI(Cell *cells, FILE *file,int num_threds)
+void open_MP(Cell *cells, FILE *file, int num_threds)
 {
     double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
-    
+
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
     {
-        #pragma omp parallel for schedule(dynamic,NUM_CELLS/num_threds)   // atomicne ven
-        for (int j = 0; j < NUM_CELLS; j++) // posodobi vsa stanja - difuzija, konvekcija
+#pragma omp parallel for schedule(dynamic, NUM_CELLS / num_threds) // atomicne ven
+        for (int j = 0; j < NUM_CELLS; j++)                        // posodobi vsa stanja - difuzija, konvekcija
         {
             // We deal with one cell at the time, do not deal with edge type
             if (cells[j].type != 3)
             {
                 // Calculate average state of neighbors, needs current cell's neighbours and pointer to all cells
-                  float average  = average_state(cells[j].neighbors, cells);
+                float average = average_state(cells[j].neighbors, cells);
 
                 stateTemp[j] = change_state(cells[j].type, cells[j].state, average);
                 // cells[j].state = change_state(cells[j].type, cells[j].state, average);
             }
         }
 
-        #pragma omp parallel for schedule(dynamic,NUM_CELLS/num_threds) 
+#pragma omp parallel for schedule(dynamic, NUM_CELLS / num_threds)
         for (int j = 0; j < NUM_CELLS; j++) // sedaj posodobi tipe celic
         {
             cells[j].state = stateTemp[j];
@@ -54,8 +54,8 @@ void open_MPI(Cell *cells, FILE *file,int num_threds)
             }
         }
         int exitFlag = 0;
-        // Če je ena od sosed celice tipa edge, prekini simulacijo
-        #pragma omp parallel for schedule(dynamic,NUM_CELLS/num_threds) shared(exitFlag) 
+// Če je ena od sosed celice tipa edge, prekini simulacijo
+#pragma omp parallel for schedule(dynamic, NUM_CELLS / num_threds) shared(exitFlag)
         for (int j = 0; j < NUM_CELLS; j++)
         {
             for (int k = 0; k < NUM_NEIGHBORS; k++)
@@ -65,18 +65,17 @@ void open_MPI(Cell *cells, FILE *file,int num_threds)
                 {
                     if (cells[j].type == 1 && cells[sosed].type == 3)
                     {
-                        //printf("break %d\n", i);
-                        j=NUM_CELLS;
-                        k=NUM_NEIGHBORS;
-                        #pragma omp atomic write
-                            exitFlag = 1;
-                   
+                        // printf("break %d\n", i);
+                        j = NUM_CELLS;
+                        k = NUM_NEIGHBORS;
+#pragma omp atomic write
+                        exitFlag = 1;
                     }
                 }
             }
         }
-        
-        if(exitFlag)
+
+        if (exitFlag)
             break;
         // if (i % STEPS_TO_DRAW == 0)
         // {
@@ -96,13 +95,13 @@ int main(int argc, int *argv[])
 {
     // // ------------- Začetek inicializacije ------------- //
     // printHexagon(ROWS); //
-    int num_threds=1;
-        #pragma omp parallel
-        {
-    #pragma omp single
-            num_threds=omp_get_num_threads();
-            printf("num_threads = %d\n",num_threds);
-        }
+    int num_threds = 1;
+#pragma omp parallel
+    {
+#pragma omp single
+        num_threds = omp_get_num_threads();
+        // printf("num_threads = %d\n", num_threds);
+    }
     // Definicija arraya s structi
 
     Cell *cells = malloc(NUM_CELLS * sizeof(*cells));
@@ -117,16 +116,15 @@ int main(int argc, int *argv[])
     char *file_name = "serial_array.txt";
     FILE *file = fopen(file_name, "w");
 
+    double dt = omp_get_wtime();
 
-   double dt = omp_get_wtime();
-
-    open_MPI(cells, file,num_threds);
+    open_MP(cells, file, num_threds);
     // write_to_file(cells, file);
 
     dt = omp_get_wtime() - dt;
 
     printf("Time elapsed: %.3lf seconds\n", (double)(dt));
-    //draw_board(cells);
+    // draw_board(cells);
 
     fclose(file);
 

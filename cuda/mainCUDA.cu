@@ -17,7 +17,6 @@ __global__ void testGPU()
     // printf("Hello world from the GPU!\n");
 }
 
-
 __global__ void stop_sim(Cell *d_cells)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -193,7 +192,7 @@ void run_CUDA(Cell *cells, int blocksize)
 int main(int argc, char *argv[])
 {
 
-    if (argc < 2) 
+    if (argc < 2)
     {
         printf("Not enough arguments!\n");
         return 1;
@@ -228,7 +227,7 @@ int main(int argc, char *argv[])
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("Elapsed time: %0.3f seconds \n", milliseconds / 1000);
 
-    //draw_board(cells);
+    // draw_board(cells);
 
     // Free allocated memory
     free(cells);

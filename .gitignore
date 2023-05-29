@@ -2,3 +2,5 @@
 serial*
 *txt
 run_*
+main
+mainCUDA
