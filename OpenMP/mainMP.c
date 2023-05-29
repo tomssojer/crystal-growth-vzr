@@ -4,8 +4,10 @@
 #include <math.h>
 #include <time.h>
 #include "../constants.h"
-#include "model.h"
+#include "modelMP.h"
+#include <omp.h>
 
+// gcc -fopenmp -o mainMP mainMP.c --openmp -lm
 // 1. Začni z eno frozen celico, okoli nje so boundary
 // 2. Za vse celice, ki so boundary in unreceptive poteka difuzija
 // 3. Za vse celice, ki so frozen in boundary poteka konvekcija
@@ -13,13 +15,14 @@
 // 4. Preveri, če ima celica state >= 1 -> nastavi na frozen, njene sosede na boundary
 // 5. Preveri, če je boundary celica soseda z edge celico, prekini simulacijo
 
-void serial(Cell *cells, FILE *file)
+void paralel(Cell *cells)
 {
     float average = 0;
     double *stateTemp = (double *)malloc(NUM_CELLS * sizeof(double));
 
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
     {
+       #pragma omp parallel for reduction(+:average)
         for (int j = 0; j < NUM_CELLS; j++) // posodobi vsa stanja - difuzija, konvekcija
         {
             // We deal with one cell at the time, do not deal with edge type
@@ -33,6 +36,7 @@ void serial(Cell *cells, FILE *file)
             }
         }
 
+      #pragma omp parallel for
         for (int j = 0; j < NUM_CELLS; j++) // sedaj posodobi tipe celic
         {
             cells[j].state = stateTemp[j];
@@ -84,6 +88,11 @@ int main(int argc, int *argv[])
 {
     // // ------------- Začetek inicializacije ------------- //
     // printHexagon(ROWS); //
+      #pragma omp parallel
+       {
+        #pragma omp single
+            printf("num_threads = %d\n", omp_get_num_threads());
+       }
 
     // Definicija arraya s structi
     Cell *cells = malloc(NUM_CELLS * sizeof(*cells));
@@ -108,16 +117,18 @@ int main(int argc, int *argv[])
     clock_t start_time, end_time;
     start_time = clock();
 
-    serial(cells, file);
-    // write_to_file(cells, file);
+   // draw_board(cells);
+    paralel(cells);
 
+    draw_board(cells);
     end_time = clock();
+
+    //draw_board(cells);
     printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
     draw_board(cells);
 
     fclose(file);
 
-    // Free allocated memory
     free(cells);
 
     return 0;
