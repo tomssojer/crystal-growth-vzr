@@ -24,7 +24,7 @@ __device__ bool stopProcessing = false;
 
 __global__ void testGPU()
 {
-    printf("Hello world from the GPU!\n");
+    // printf("Hello world from the GPU!\n");
 }
 
 __global__ void stop_sim(Cell *d_cells)
@@ -41,7 +41,7 @@ __global__ void stop_sim(Cell *d_cells)
             {
                 if (d_cells[x].neighbors[k] == 3)
                 {
-                    printf("break %d\n", x);
+                    // printf("break %d\n", x);
                     stopProcessing = true;
                     // return something  to driver function so it stops
                 }
@@ -150,7 +150,7 @@ void parallel_cuda(Cell *d_cells, Cell *cells)
 
         if (stopFlagValue)
         {
-            printf("\nSTEP breking %d\n", i);
+            // printf("\nSTEP breking %d\n", i);
             i = STEPS;
             break;
         }
@@ -225,15 +225,14 @@ int main(int argc, char *argv[])
 
     run_CUDA(cells);
 
-    // serial(cells);
-    draw_board(cells);
-
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
 
     float milliseconds = 0;
     cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("Elapsed time: %0.3f milliseconds \n", milliseconds);
+    printf("Elapsed time: %0.3f seconds \n", milliseconds / 1000);
+
+    // draw_board(cells);
 
     // Free allocated memory
     free(cells);

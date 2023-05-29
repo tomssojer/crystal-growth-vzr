@@ -34,37 +34,58 @@ double change_state(int type, double state, double average) // pohitritev aplha 
 }
 
 // Poglej sosede, če je kateri tipa 1, posodobi trenutno celico
-void set_type_boundary_MPI(Cell *cell_buffer, Cell *top_process, Cell *bottom_process, int start_process, int end_process, int j)
+void set_type_boundary_MPI(Cell *cell_buffer, Cell *top_process, Cell *bottom_process, int start_process, int end_process, int j, int id)
 {
 
-    for (int i = 0; i < NUM_NEIGHBORS; i++) // i gues
+    for (int k = 0; k < NUM_NEIGHBORS; k++)
     {
-        int sosed = cell_buffer[j].neighbors[i];
+        int sosed = cell_buffer[j].neighbors[k];
+
+        // if (id == 1)
+        //     printf("Neighbor at index %d\n", sosed);
+
         // Preveri, da je valid sosed
         if (sosed >= 0)
         {
+
             // preveri kje lezi sosed v top_process, cell_buffer ali bottom>_process
             if (sosed < end_process && sosed >= start_process)
             {
+                // if (id == 1)
+                //     printf("Neighbor at index %d in buffer, current %d, value %d\n", sosed, j + start_process, cell_buffer[sosed - start_process].type);
                 // Dodeli tip boundary le, če ni frozen ali edge
-                if (cell_buffer[sosed].type == 0)
+                if (cell_buffer[sosed - start_process].type == 0)
                 {
+
                     cell_buffer[j].type = 1;
                     break;
                 }
             }
+            // start_process = 200
+            // end_process = 400
+            // j = 201
+            // sosed = 200
+            // 200 - 200 = 0
+
             else if (sosed >= end_process)
             {
-                if (bottom_process[sosed].type == 0)
+                if (bottom_process[sosed - end_process].type == 0)
                 {
+                    // if (id == 1)
+                    //     printf("Neighbor at index %d in bottom, current %d\n", sosed, j + start_process);
                     cell_buffer[j].type = 1;
                     break;
                 }
             }
+
             else if (sosed < start_process)
             {
-                if (top_process[sosed].type == 0)
+                if (top_process[sosed - start_process + COLUMNS].type == 0)
                 {
+                    // če je sosed 180, current 201
+                    // if (id == 1)
+                    //     printf("Neighbor at index %d in top, current %d, value %d, start value %d\n", sosed, j + start_process, cell_buffer[start_process - sosed].type, start_process);
+
                     cell_buffer[j].type = 1;
                     break;
                 }
@@ -107,10 +128,10 @@ double average_state(Cell *cell_buffer, Cell *top_process, Cell *bottom_process,
             else if (sosed < start_process)
             {
                 // printf("index TOP %d\n", start_process - sosed - 1);
-                if (top_process[start_process - sosed].type > 1)
+                if (top_process[sosed - start_process + COLUMNS].type > 1)
                 {
                     //   printf("Top process index: %d\t", start_process - sosed - 1);
-                    average += top_process[start_process - sosed].state;
+                    average += top_process[sosed - start_process + COLUMNS].state;
                 }
             }
         }

@@ -58,7 +58,7 @@ void serial(Cell *cells, FILE *file)
             {
                 if (cells[j].type == 1 && cells[j].neighbors[k] == 3)
                 {
-                    printf("break %d\n", i);
+                    // printf("break %d\n", i);
                     i = STEPS;
                     j = NUM_CELLS;
                     break;
@@ -94,23 +94,22 @@ int main(int argc, int *argv[])
     char *file_name = "serial_array.txt";
     FILE *file = fopen(file_name, "w");
 
-    if (file == NULL)
-    {
-        printf("Could not open file.");
-        exit(-1);
-    }
+    // if (file == NULL)
+    // {
+    //     printf("Could not open file.");
+    //     exit(-1);
+    // }
     // ------------- Konec inicializacije ------------- //
 
     clock_t start_time, end_time;
     start_time = clock();
 
     serial(cells, file);
-    // printf("Step number: %d\n", STEPS);
-    draw_board(cells);
     // write_to_file(cells, file);
 
     end_time = clock();
     printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
+    // draw_board(cells);
 
     fclose(file);
 
