@@ -79,11 +79,11 @@ int main(int argc, char *argv[])
     for (int i = 0; i < STEPS; i++)
     {
 
-        MPI_Sendrecv(&cell_buffer[0][columns_per_process - 1], 1, column_type_resized, (id + 1) % num_p, 0,
+        MPI_Sendrecv(&cell_buffer[cells_per_process - ROWS], 1, column_type_resized, (id + 1) % num_p, 0,
                      left_process, 1, column_type_resized, (id + num_p - 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 
-        MPI_Sendrecv(&cell_buffer[0][0], 1, column_type_resized, (id + num_p - 1) % num_p, 0,
+        MPI_Sendrecv(&cell_buffer[0], 1, column_type_resized, (id + num_p - 1) % num_p, 0,
                      right_process, 1, column_type_resized, (id + 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 
@@ -108,11 +108,11 @@ int main(int argc, char *argv[])
         }
 
         // Spet poslji zadnjo in prvo vrstico posodobljen buffer, da se izvede update celic
-        MPI_Sendrecv(&cell_buffer[0][columns_per_process - 1], 1, column_type_resized, (id + 1) % num_p, 0,
+        MPI_Sendrecv(&cell_buffer[cells_per_process - ROWS], 1, column_type_resized, (id + 1) % num_p, 0,
                      left_process, 1, column_type_resized, (id + num_p - 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 
-        MPI_Sendrecv(&cell_buffer[0][0], 1, column_type_resized, (id + num_p - 1) % num_p, 0,
+        MPI_Sendrecv(&cell_buffer[0], 1, column_type_resized, (id + num_p - 1) % num_p, 0,
                      right_process, 1, column_type_resized, (id + 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 
