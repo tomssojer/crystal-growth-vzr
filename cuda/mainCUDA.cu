@@ -27,6 +27,7 @@ __global__ void testGPU()
     // printf("Hello world from the GPU!\n");
 }
 
+
 __global__ void stop_sim(Cell *d_cells)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -87,7 +88,6 @@ __global__ void cell_type(Cell *d_cells, double *stateTemp)
         }
     }
 }
-
 __global__ void get_states(Cell *d_cells, double *stateTemp, int size)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -135,7 +135,7 @@ void parallel_cuda(Cell *d_cells, Cell *cells)
 {
     double *d_stateTemp;
     checkCudaErrors(cudaMalloc((void **)&d_stateTemp, NUM_CELLS * sizeof(double)));
-    int blockSize = 512;
+    int blockSize = 256;
     int numBlocks = (NUM_CELLS + blockSize - 1) / blockSize;
 
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("Elapsed time: %0.3f seconds \n", milliseconds / 1000);
 
-    draw_board(cells);
+    //draw_board(cells);
 
     // Free allocated memory
     free(cells);
