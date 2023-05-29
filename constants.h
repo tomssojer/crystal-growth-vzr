@@ -1,5 +1,5 @@
 // number of rows
-#define ROWS 40
+#define ROWS 6000
 
 // number of columns
 #define COLUMNS ROWS
@@ -20,7 +20,7 @@
 #define GAMMA 0.0048
 
 // število korakov simulacije
-#define STEPS 100
+#define STEPS 600
 
 // število iteracij za izpis
 #define STEPS_TO_DRAW 10

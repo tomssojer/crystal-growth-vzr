@@ -104,7 +104,7 @@ int main(int argc, int *argv[])
             printf("num_threads = %d\n",num_threds);
         }
     // Definicija arraya s structi
-    Cell *cells = malloc(NUM_CELLS * sizeof(*cells));
+
     Cell *cells = malloc(NUM_CELLS * sizeof(*cells));
 
     // Dodaj sosede in indekse v struct
@@ -117,21 +117,6 @@ int main(int argc, int *argv[])
     char *file_name = "serial_array.txt";
     FILE *file = fopen(file_name, "w");
 
-    // if (file == NULL)
-    // {
-    //     printf("Could not open file.");
-    //     exit(-1);
-    // }
-    // Ime datoteke - odvisno od št vrstic, alfe, bete, game
-    char *file_name = "serial_array.txt";
-    FILE *file = fopen(file_name, "w");
-
-    // if (file == NULL)
-    // {
-    //     printf("Could not open file.");
-    //     exit(-1);
-    // }
-    // ------------- Konec inicializacije ------------- //
 
    double dt = omp_get_wtime();
 

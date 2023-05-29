@@ -113,7 +113,7 @@ int main(int argc, int *argv[])
 
     end_time = clock();
     printf("Time elapsed: %.3lf seconds\n", (double)(end_time - start_time) / CLOCKS_PER_SEC);
-    draw_board(cells);
+    //draw_board(cells);
 
     fclose(file);
 
