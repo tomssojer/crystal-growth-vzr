@@ -42,6 +42,7 @@ __global__ void stop_sim(Cell *d_cells)
         }
     }
 }
+
 __global__ void cell_type(Cell *d_cells, double *stateTemp)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -119,6 +120,55 @@ __global__ void get_states(Cell *d_cells, double *stateTemp, int size)
         stateTemp[x] = state; // cells[x].state + double((ALPHA/2)) + GAMMA; //state;
     }
 }
+__global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+     if (x < size)  {
+        __shared__ Cell cache[2];
+        cache[0] = d_cells[x];
+
+        if ( d_cells[x].type != 3) // ne presežem limite slike
+        {
+            
+         
+            double state = cache[0].state;
+            double average = 0.0;
+         
+            for (int i = 0; i < NUM_NEIGHBORS; i++)
+            {
+
+                int sosed= cache[0].neighbors[i];
+                
+                // printf("sosed: %d \t ||",sosed);
+                if (sosed >= 0)
+                {
+                     cache[1] = d_cells[sosed];
+                    // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
+                    if (cache[1].type > 1)
+                    {
+                        average += cache[1].state;
+                        // printf("x %d je: %d => %f \n",x,sosed,d_cells[sosed].state);
+                    }
+                }
+            }
+
+            average = average / NUM_NEIGHBORS;
+
+            int type =cache[0].type;
+            if (type < 2)
+            {
+                state = state + (ALPHA / 2) * average + GAMMA;
+            }
+            //  unreceptive, edge
+            else
+            {
+                state = state + ALPHA / 2 * (average - state);
+            }
+
+            stateTemp[x] = state; // cells[x].state + double((ALPHA/2)) + GAMMA; //state;
+        }
+     }
+}
 
 void parallel_cuda(Cell *d_cells, Cell *cells, int blockSize)
 {
@@ -130,7 +180,7 @@ void parallel_cuda(Cell *d_cells, Cell *cells, int blockSize)
     {
         bool stopFlagValue;
         // update states of board
-        get_states<<<numBlocks, blockSize>>>(d_cells, d_stateTemp, NUM_CELLS);
+        get_states_cache<<<numBlocks, blockSize>>>(d_cells, d_stateTemp, NUM_CELLS);
         cudaDeviceSynchronize();
         cell_type<<<numBlocks, blockSize>>>(d_cells, d_stateTemp);
         cudaDeviceSynchronize();
