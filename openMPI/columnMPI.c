@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include "/usr/include/openmpi-x86_64/mpi.h"
+// #include "/usr/include/openmpi-x86_64/mpi.h"
+#include <mpi.h>
 #include "../constants.h"
 #include "modelMPI.h"
 
@@ -46,7 +47,7 @@ int main(int argc, char *argv[])
     int start_process = id * columns_per_process;
     int end_process = (id + 1) * columns_per_process;
 
-    MPI_Datatype cell_type, cell_type_resized, column_type, column_type_resized;
+    MPI_Datatype cell_type, cell_type_resized, column_type, column_type_resized, row_type, row_type_resized;
 
     // Definicija cell structov
     int lengths[3] = {1, 1, 6}; // dolzine podatkov
@@ -61,18 +62,33 @@ int main(int argc, char *argv[])
     ///////////////////////////
 
     // Definicija column typa
-    MPI_Type_vector(ROWS, 1, COLUMNS, cell_type_resized, &column_type);
+    MPI_Type_vector(ROWS, 1, columns_per_process, cell_type_resized, &column_type);
     MPI_Type_create_resized(column_type, 0, sizeof(Cell), &column_type_resized);
     MPI_Type_commit(&column_type_resized);
+
+    MPI_Type_vector(COLUMNS, 1, sizeof(Cell), cell_type_resized, &row_type); // posljemo le en stolpec
+    MPI_Type_create_resized(row_type, 0, sizeof(Cell), &row_type_resized);
+    MPI_Type_commit(&row_type_resized);
 
     Cell *cell_buffer = malloc(cells_per_process * sizeof(Cell));
     Cell *left_process = malloc(ROWS * sizeof(Cell));
     Cell *right_process = malloc(ROWS * sizeof(Cell));
-
+    // scatter initial matrix
+    // MPI_Scatter(boardptr, mycols, column_resized,
+    // 			*myboard, mycols, column_perCore_resized,
+    // 			0, MPI_COMM_WORLD);
     // Scatter work
-    MPI_Scatter(cells, columns_per_process, column_type_resized, cell_buffer, columns_per_process, column_type_resized, 0, MPI_COMM_WORLD);
 
+    MPI_Scatter(cells, columns_per_process, column_type_resized, cell_buffer,
+                columns_per_process, column_type_resized, 0, MPI_COMM_WORLD);
+    if (id == 0)
+    {
+        for (int i = 0; i < cells_per_process; i++)
+            for (int j = 0; j < NUM_NEIGHBORS; j++)
+                printf("Id: %d, cell neighbor: %d\n", i, cell_buffer[i].neighbors[j]);
+    }
     // --------- driver code ----------//
+
     float average = 0;
     double *stateTemp = (double *)malloc(cells_per_process * sizeof(double));
 
@@ -136,7 +152,7 @@ int main(int argc, char *argv[])
 
     if (id == 0)
     {
-        // draw_board(cells);
+        draw_board(cells);
         printf("Time elapsed: %.3lf seconds\n", end_time - start_time);
     }
 
