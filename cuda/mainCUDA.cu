@@ -9,7 +9,7 @@
 #include "../constants.h"
 #include "modelCUDA.h"
 #include "helper_cuda.h"
-#define THREADS_PER_BLOCK 128
+#define THREADS_PER_BLOCK 16
 
 __device__ bool stopProcessing = false;
 
@@ -113,8 +113,8 @@ __global__ void get_states(Cell *d_cells, double *stateTemp, int size)
 }
 __global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
 {
-     __shared__ Cell cache[7*THREADS_PER_BLOCK];
-    //__shared__ Cell cache[THREADS_PER_BLOCK];
+    //__shared__ Cell cache[7*THREADS_PER_BLOCK];
+    __shared__ Cell cache[THREADS_PER_BLOCK];
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     if (x < size)  {
         int threadId = threadIdx.x;
@@ -127,26 +127,71 @@ __global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
             double state = cache[threadId].state;
             double average = 0.0;
             
+            // for (int i = 0; i < NUM_NEIGHBORS; i++)
+            // {
+            //     int sosed = cache[threadId].neighbors[i];
+            
+            //     // printf("sosed: %d \t ||",sosed);
+            //     if (sosed >= 0)
+            //     {
+            //        int sosed_new = (sosed - (blockIdx.x * blockDim.x)) % THREADS_PER_BLOCK;
+            //        // printf("%d -> %d \n",sosed,sosed_new);
+            //         int tip;
+            //         if (sosed_new < THREADS_PER_BLOCK )  // zadetek sosed v cache, drugace posegaj v ram
+            //         {
+            //             tip=cache[sosed_new].type;
+            //         } else { // glej v gpu memory
+            //             tip=d_cells[sosed].type;
+            //         }
+            //         // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
+            //         if (tip > 1)
+            //         {
+            //                 if (sosed_new < THREADS_PER_BLOCK )  // zadetek sosed v cache, drugace posegaj v ram
+            //                 {
+            //                     average += cache[sosed_new].state;
+            //                 } else { // glej v gpu memory
+            //                     average += d_cells[sosed].state;
+            //                 }
+            //             //average += cache[(i+1)*THREADS_PER_BLOCK + threadId].state;
+            //                 //printf("avg %d \t",avrage);
+            //             // printf("x %d je: %d => %f \n",x,sosed,d_cells[sosed].state);
+            //         }
+            //     }
+            // }
+
             for (int i = 0; i < NUM_NEIGHBORS; i++)
             {
                 int sosed = cache[threadId].neighbors[i];
+                Cell neighbor_cell;
 
-                // printf("sosed: %d \t ||",sosed);
                 if (sosed >= 0)
                 {
-                    cache[(i+1)*THREADS_PER_BLOCK + threadId] = d_cells[sosed];
-                    // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
-                    if (cache[(i+1)*THREADS_PER_BLOCK+ threadId].type > 1)
+                    
+                    if (sosed >= blockIdx.x * blockDim.x && sosed < (blockIdx.x + 1) * blockDim.x)
                     {
-                        average += cache[(i+1)*THREADS_PER_BLOCK + threadId].state;
-                            //printf("avg %d \t",avrage);
-                        // printf("x %d je: %d => %f \n",x,sosed,d_cells[sosed].state);
+                        if (x - sosed == 1)
+                        {
+                            neighbor_cell = cache[threadId - 1];
+                        }
+                        else if (sosed - x == 1)
+                        {
+                            //printf("sosed N: %d, threadId: %d\n", sosed - blockIdx.x * blockDim.x, threadId);
+                            neighbor_cell = cache[threadId + 1];
+                        }
                     }
+                    else
+                        neighbor_cell = d_cells[sosed];
+
+                    // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
+                    if (neighbor_cell.type > 1)
+                        average += neighbor_cell.state;
                 }
             }
+
+
             average = average / NUM_NEIGHBORS;
 
-            int type =   cache[threadId].type;
+            int type = cache[threadId].type;
             if (type < 2)
             {
                 state = state + (ALPHA / 2) * average + GAMMA;
@@ -269,7 +314,7 @@ int main(int argc, char *argv[])
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("Elapsed time: %0.3f seconds \n", milliseconds / 1000);
 
-    //draw_board(cells);
+    // draw_board(cells);
 
     // Free allocated memory
     free(cells);
