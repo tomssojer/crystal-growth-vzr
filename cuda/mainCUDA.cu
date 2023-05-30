@@ -9,6 +9,7 @@
 #include "../constants.h"
 #include "modelCUDA.h"
 #include "helper_cuda.h"
+#define THREADS_PER_BLOCK 128
 
 __device__ bool stopProcessing = false;
 
@@ -42,7 +43,6 @@ __global__ void stop_sim(Cell *d_cells)
         }
     }
 }
-
 __global__ void cell_type(Cell *d_cells, double *stateTemp)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -63,15 +63,6 @@ __global__ void cell_type(Cell *d_cells, double *stateTemp)
                     if (d_cells[sosed].type != 0 && d_cells[sosed].type != 3)
                     {
                         d_cells[sosed].type = 1;
-                        // for (int k = 0; k < NUM_NEIGHBORS; k++)
-                        // {
-                        //     if (d_cells[x].neighbors[k] == 3)
-                        //     {
-                        //         printf("break %d\n", x);
-                        //         stopProcessing = true;
-                        //         // return something  to driver function so it stops
-                        //     }
-                        // }
                     }
                 }
             }
@@ -122,39 +113,40 @@ __global__ void get_states(Cell *d_cells, double *stateTemp, int size)
 }
 __global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
 {
+     __shared__ Cell cache[7*THREADS_PER_BLOCK];
+    //__shared__ Cell cache[THREADS_PER_BLOCK];
     int x = threadIdx.x + blockIdx.x * blockDim.x;
-     if (x < size)  {
-        __shared__ Cell cache[2];
-        cache[0] = d_cells[x];
+    if (x < size)  {
+        int threadId = threadIdx.x;
+       
+        cache[threadId] = d_cells[x];
+        __syncthreads();
 
-        if ( d_cells[x].type != 3) // ne presežem limite slike
+        if (cache[threadId].type != 3) // ne presežem limite slike
         {
-            
-         
-            double state = cache[0].state;
+            double state = cache[threadId].state;
             double average = 0.0;
-         
+            
             for (int i = 0; i < NUM_NEIGHBORS; i++)
             {
+                int sosed = cache[threadId].neighbors[i];
 
-                int sosed= cache[0].neighbors[i];
-                
                 // printf("sosed: %d \t ||",sosed);
                 if (sosed >= 0)
                 {
-                     cache[1] = d_cells[sosed];
+                    cache[(i+1)*THREADS_PER_BLOCK + threadId] = d_cells[sosed];
                     // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
-                    if (cache[1].type > 1)
+                    if (cache[(i+1)*THREADS_PER_BLOCK+ threadId].type > 1)
                     {
-                        average += cache[1].state;
+                        average += cache[(i+1)*THREADS_PER_BLOCK + threadId].state;
+                            //printf("avg %d \t",avrage);
                         // printf("x %d je: %d => %f \n",x,sosed,d_cells[sosed].state);
                     }
                 }
             }
-
             average = average / NUM_NEIGHBORS;
 
-            int type =cache[0].type;
+            int type =   cache[threadId].type;
             if (type < 2)
             {
                 state = state + (ALPHA / 2) * average + GAMMA;
@@ -242,13 +234,13 @@ void run_CUDA(Cell *cells, int blocksize)
 int main(int argc, char *argv[])
 {
 
-    if (argc < 2)
-    {
-        printf("Not enough arguments!\n");
-        return 1;
-    }
+    // if (argc < 2)
+    // {
+    //     printf("Not enough arguments!\n");
+    //     return 1;
+    // }
 
-    int blocksize = atoi(argv[1]);
+    // int blocksize = atoi(argv[1]);
 
     // // ------------- Začetek inicializacije ------------- //
     // Definicija arraya s structi
@@ -268,7 +260,7 @@ int main(int argc, char *argv[])
     cudaEventRecord(start);
 
     // draw_board(cells);
-    run_CUDA(cells, blocksize);
+    run_CUDA(cells, THREADS_PER_BLOCK);
 
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -277,7 +269,7 @@ int main(int argc, char *argv[])
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("Elapsed time: %0.3f seconds \n", milliseconds / 1000);
 
-    // draw_board(cells);
+    //draw_board(cells);
 
     // Free allocated memory
     free(cells);
