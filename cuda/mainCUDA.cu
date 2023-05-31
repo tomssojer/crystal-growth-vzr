@@ -92,11 +92,18 @@ __global__ void cell_type_cache(Cell *d_cells, double *stateTemp)
             {
                 // ko delamo bralne dostope cachiraj 
                 int sosed = cache[threadId].neighbors[i];
+                //printf("Sosed od indeksa %d: %d\n", x, sosed);
                 // Preveri, da je valid sosed
                 if (sosed >= 0)
                 {
+                    //printf("vel %d \t",blockIdx.x * blockDim.x);
                     if (sosed >= blockIdx.x * blockDim.x && sosed < (blockIdx.x + 1) * blockDim.x)
                     {
+                        // int sosedNew=sosed-blockIdx.x * blockDim.x;
+                        // if (cache[sosedNew].type == 2)
+                        //         d_cells[sosed].type = 1;
+                        // printf("<mspirans %d  %d: %d\n",blockIdx.x, sosedNew, sosed);
+                        // // d_cells[sosedNew].type = 1;
                         if (x - sosed == 1)
                         {
                              if (cache[threadId - 1].type == 2)
@@ -106,6 +113,10 @@ __global__ void cell_type_cache(Cell *d_cells, double *stateTemp)
                         {
                             if (cache[threadId + 1].type == 2)
                                 d_cells[sosed].type = 1;
+                        } 
+                        else if (d_cells[sosed].type == 2) 
+                        {
+                            d_cells[sosed].type = 1;
                         }
                     }
                     else if (d_cells[sosed].type == 2)
@@ -130,7 +141,6 @@ __global__ void get_states(Cell *d_cells, double *stateTemp, int size)
         int *neighbors = d_cells[x].neighbors;
         for (int i = 0; i < NUM_NEIGHBORS; i++)
         {
-
             int sosed = neighbors[i];
             // printf("sosed: %d \t ||",sosed);
             if (sosed >= 0)
@@ -165,6 +175,7 @@ __global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
     //__shared__ Cell cache[7*THREADS_PER_BLOCK];
     __shared__ Cell cache[THREADS_PER_BLOCK];
     int x = threadIdx.x + blockIdx.x * blockDim.x;
+   
     if (x < size)  {
         int threadId = threadIdx.x;
        
@@ -176,7 +187,6 @@ __global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
             double state = cache[threadId].state;
             double average = 0.0;
             
-
             for (int i = 0; i < NUM_NEIGHBORS; i++)
             {
                 int sosed = cache[threadId].neighbors[i];
@@ -190,6 +200,8 @@ __global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
                             neighbor_cell = cache[threadId - 1];
                         else if (sosed - x == 1)
                             neighbor_cell = cache[threadId + 1];
+                        else 
+                            neighbor_cell = d_cells[sosed];
                     }
                     else
                         neighbor_cell = d_cells[sosed];
@@ -228,9 +240,9 @@ void parallel_cuda(Cell *d_cells, Cell *cells, int blockSize)
     {
         bool stopFlagValue;
         // update states of board
-        get_states<<<numBlocks, blockSize>>>(d_cells, d_stateTemp, NUM_CELLS);
+        get_states_cache<<<numBlocks, blockSize>>>(d_cells, d_stateTemp, NUM_CELLS);
         cudaDeviceSynchronize();
-        cell_type_cache<<<numBlocks, blockSize>>>(d_cells, d_stateTemp);
+        cell_type<<<numBlocks, blockSize>>>(d_cells, d_stateTemp);
         cudaDeviceSynchronize();
 
         stop_sim<<<numBlocks, blockSize>>>(d_cells);
@@ -286,10 +298,21 @@ void run_CUDA(Cell *cells, int blocksize)
     // Free memory on GPU
     cudaFree(d_cells);
 }
+void get_cacheSize(int size) {
+    int deviceId;
+    cudaGetDevice(&deviceId);
 
+    cudaDeviceProp deviceProps;
+    cudaGetDeviceProperties(&deviceProps, deviceId);
+
+    int sharedMemorySize = deviceProps.sharedMemPerBlock;
+
+    printf("Max shared memory size per block: %d bytes\n", sharedMemorySize/size);
+}
 int main(int argc, char *argv[])
 {
-
+  
+    
     // if (argc < 2)
     // {
     //     printf("Not enough arguments!\n");
@@ -301,10 +324,8 @@ int main(int argc, char *argv[])
     // // ------------- Začetek inicializacije ------------- //
     // Definicija arraya s structi
     Cell *cells = (Cell *)malloc(NUM_CELLS * sizeof(*cells));
-
-    // Dodaj sosede in indekse v struct
+    //get_cacheSize(sizeof(Cell));
     init_grid(cells);
-
     // Določi začetno vrednost glede na tip celice
     init_state(cells);
 
