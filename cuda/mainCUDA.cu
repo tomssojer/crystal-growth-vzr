@@ -10,7 +10,7 @@
 #include "modelCUDA.h"
 #include "helper_cuda.h"
 
-#define THREADS_PER_BLOCK 64
+#define THREADS_PER_BLOCK 512
 
 __device__ bool stopProcessing = false;
 
