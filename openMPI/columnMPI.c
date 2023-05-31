@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-// #include "/usr/include/openmpi-x86_64/mpi.h"
-#include <mpi.h>
+#include "/usr/include/openmpi-x86_64/mpi.h"
+// #include <mpi.h>
 #include "../constants.h"
 #include "modelMPI.h"
 
@@ -62,11 +62,11 @@ int main(int argc, char *argv[])
     ///////////////////////////
 
     // Definicija column typa
-    MPI_Type_vector(ROWS, 1, columns_per_process, cell_type_resized, &column_type);
+    MPI_Type_vector(ROWS, 1, COLUMNS, cell_type_resized, &column_type);
     MPI_Type_create_resized(column_type, 0, sizeof(Cell), &column_type_resized);
     MPI_Type_commit(&column_type_resized);
 
-    MPI_Type_vector(COLUMNS, 1, sizeof(Cell), cell_type_resized, &row_type); // posljemo le en stolpec
+    MPI_Type_vector(columns_per_process, 1, COLUMNS, cell_type_resized, &row_type); // posljemo le en stolpec
     MPI_Type_create_resized(row_type, 0, sizeof(Cell), &row_type_resized);
     MPI_Type_commit(&row_type_resized);
 
@@ -78,15 +78,10 @@ int main(int argc, char *argv[])
     // 			*myboard, mycols, column_perCore_resized,
     // 			0, MPI_COMM_WORLD);
     // Scatter work
-
+    // TEST RUN PLS!!!
     MPI_Scatter(cells, columns_per_process, column_type_resized, cell_buffer,
                 columns_per_process, column_type_resized, 0, MPI_COMM_WORLD);
-    if (id == 0)
-    {
-        for (int i = 0; i < cells_per_process; i++)
-            for (int j = 0; j < NUM_NEIGHBORS; j++)
-                printf("Id: %d, cell neighbor: %d\n", i, cell_buffer[i].neighbors[j]);
-    }
+
     // --------- driver code ----------//
 
     float average = 0;
@@ -102,7 +97,9 @@ int main(int argc, char *argv[])
         MPI_Sendrecv(&cell_buffer[0], 1, column_type_resized, (id + num_p - 1) % num_p, 0,
                      right_process, 1, column_type_resized, (id + 1) % num_p, 0,
                      MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
-
+        // for() {
+        //     printf("id %d left: right: %d")
+        // }
         // Iteracija skozi cell_buffer
         for (int j = 0; j < cells_per_process; j++)
         {
@@ -152,7 +149,7 @@ int main(int argc, char *argv[])
 
     if (id == 0)
     {
-        draw_board(cells);
+        // draw_board(cells);
         printf("Time elapsed: %.3lf seconds\n", end_time - start_time);
     }
 

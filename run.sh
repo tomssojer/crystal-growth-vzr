@@ -27,12 +27,14 @@ done
 # cuda
 module load CUDA/10.1.243-GCC-8.3.0
 nvcc cuda/mainCUDA.cu -O2 -o run_cuda
-echo -e "\n-----------------------------\nRunning CUDA\n" >> $FILE
 
-for i in 16 32 64 128 256 512 1024
-do
-    echo "CUDA - blocksize = $i" >> $FILE
-    srun --reservation=fri -G1 -n1 ./run_cuda $i >> $FILE
+for i in 0 1; do
+    echo -e "\n-----------------------------\nRunning CUDA with flag $i\n" >> $FILE
+    for j in 16 32 64 128 256 512 1024; do
+        
+        echo "CUDA - blocksize = $j" >> $FILE
+        srun --reservation=fri -G1 -n1 ./run_cuda $j $i >> $FILE
+    done
 done
 
 # openMPI by rows

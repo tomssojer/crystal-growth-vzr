@@ -1,5 +1,5 @@
 // number of rows
-#define ROWS 200
+#define ROWS 2500
 
 // number of columns
 #define COLUMNS ROWS
@@ -14,13 +14,13 @@
 #define ALPHA 1.2
 
 // background vapour level
-#define BETA 0.68
+#define BETA 0.5
 
 // vapour addition
-#define GAMMA 0.0048
+#define GAMMA 0.002
 
 // število korakov simulacije
-#define STEPS 600
+#define STEPS 1500
 
 // število iteracij za izpis
 #define STEPS_TO_DRAW 10

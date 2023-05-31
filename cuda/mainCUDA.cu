@@ -10,8 +10,7 @@
 #include "modelCUDA.h"
 #include "helper_cuda.h"
 
-#define THREADS_PER_BLOCK 512
-
+int THREADS_PER_BLOCK;
 __device__ bool stopProcessing = false;
 
 __global__ void testGPU()
@@ -73,7 +72,7 @@ __global__ void cell_type(Cell *d_cells, double *stateTemp)
 
 __global__ void cell_type_cache(Cell *d_cells, double *stateTemp)
 {
-    __shared__ Cell cache[THREADS_PER_BLOCK];
+    __shared__ Cell cache[16];
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int threadId = threadIdx.x;
 
@@ -90,31 +89,25 @@ __global__ void cell_type_cache(Cell *d_cells, double *stateTemp)
 
             for (int i = 0; i < NUM_NEIGHBORS; i++)
             {
-                // ko delamo bralne dostope cachiraj 
+                // ko delamo bralne dostope cachiraj
                 int sosed = cache[threadId].neighbors[i];
-                //printf("Sosed od indeksa %d: %d\n", x, sosed);
-                // Preveri, da je valid sosed
+                //  Preveri, da je valid sosed
                 if (sosed >= 0)
                 {
-                    //printf("vel %d \t",blockIdx.x * blockDim.x);
+                    // printf("vel %d \t",blockIdx.x * blockDim.x);
                     if (sosed >= blockIdx.x * blockDim.x && sosed < (blockIdx.x + 1) * blockDim.x)
                     {
-                        // int sosedNew=sosed-blockIdx.x * blockDim.x;
-                        // if (cache[sosedNew].type == 2)
-                        //         d_cells[sosed].type = 1;
-                        // printf("<mspirans %d  %d: %d\n",blockIdx.x, sosedNew, sosed);
-                        // // d_cells[sosedNew].type = 1;
                         if (x - sosed == 1)
                         {
-                             if (cache[threadId - 1].type == 2)
+                            if (cache[threadId - 1].type == 2)
                                 d_cells[sosed].type = 1;
                         }
-                        else if (sosed - x == 1) 
+                        else if (sosed - x == 1)
                         {
                             if (cache[threadId + 1].type == 2)
                                 d_cells[sosed].type = 1;
-                        } 
-                        else if (d_cells[sosed].type == 2) 
+                        }
+                        else if (d_cells[sosed].type == 2)
                         {
                             d_cells[sosed].type = 1;
                         }
@@ -142,14 +135,12 @@ __global__ void get_states(Cell *d_cells, double *stateTemp, int size)
         for (int i = 0; i < NUM_NEIGHBORS; i++)
         {
             int sosed = neighbors[i];
-            // printf("sosed: %d \t ||",sosed);
             if (sosed >= 0)
             {
                 // Če je type sosednje celice unreceptive ali edge, potem pridobi del od nje
                 if (d_cells[sosed].type > 1)
                 {
                     average += d_cells[sosed].state;
-                    // printf("x %d je: %d => %f \n",x,sosed,d_cells[sosed].state);
                 }
             }
         }
@@ -172,13 +163,13 @@ __global__ void get_states(Cell *d_cells, double *stateTemp, int size)
 }
 __global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
 {
-    //__shared__ Cell cache[7*THREADS_PER_BLOCK];
-    __shared__ Cell cache[THREADS_PER_BLOCK];
+    extern __shared__ Cell cache[];
     int x = threadIdx.x + blockIdx.x * blockDim.x;
-   
-    if (x < size)  {
+
+    if (x < size)
+    {
         int threadId = threadIdx.x;
-       
+
         cache[threadId] = d_cells[x];
         __syncthreads();
 
@@ -186,7 +177,7 @@ __global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
         {
             double state = cache[threadId].state;
             double average = 0.0;
-            
+
             for (int i = 0; i < NUM_NEIGHBORS; i++)
             {
                 int sosed = cache[threadId].neighbors[i];
@@ -200,7 +191,7 @@ __global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
                             neighbor_cell = cache[threadId - 1];
                         else if (sosed - x == 1)
                             neighbor_cell = cache[threadId + 1];
-                        else 
+                        else
                             neighbor_cell = d_cells[sosed];
                     }
                     else
@@ -227,45 +218,40 @@ __global__ void get_states_cache(Cell *d_cells, double *stateTemp, int size)
 
             stateTemp[x] = state; // cells[x].state + double((ALPHA/2)) + GAMMA; //state;
         }
-     }
+    }
 }
 
-void parallel_cuda(Cell *d_cells, Cell *cells, int blockSize)
+void parallel_cuda(Cell *d_cells, Cell *cells, int blocksize, int cache_flag)
 {
     double *d_stateTemp;
     checkCudaErrors(cudaMalloc((void **)&d_stateTemp, NUM_CELLS * sizeof(double)));
-    int numBlocks = (NUM_CELLS + blockSize - 1) / blockSize;
+    int numBlocks = (NUM_CELLS + blocksize - 1) / blocksize;
 
     for (int i = 0; i < STEPS; i++) // iteracije, oz stanja po casu
     {
         bool stopFlagValue;
         // update states of board
-        get_states_cache<<<numBlocks, blockSize>>>(d_cells, d_stateTemp, NUM_CELLS);
+        if (cache_flag)
+            get_states_cache<<<numBlocks, blocksize, THREADS_PER_BLOCK>>>(d_cells, d_stateTemp, NUM_CELLS);
+        else
+            get_states<<<numBlocks, blocksize>>>(d_cells, d_stateTemp, NUM_CELLS);
+
         cudaDeviceSynchronize();
-        cell_type<<<numBlocks, blockSize>>>(d_cells, d_stateTemp);
+        cell_type<<<numBlocks, blocksize>>>(d_cells, d_stateTemp);
         cudaDeviceSynchronize();
 
-        stop_sim<<<numBlocks, blockSize>>>(d_cells);
+        stop_sim<<<numBlocks, blocksize>>>(d_cells);
         cudaDeviceSynchronize();
         cudaMemcpyFromSymbol(&stopFlagValue, stopProcessing, sizeof(bool));
 
         if (stopFlagValue)
         {
-            printf("breking %d\n", i);
+            printf("Breaking %d\n", i);
             i = STEPS;
             break;
         }
-
-        // if (i % STEPS_TO_DRAW == 0)
-        // {
-        //      checkCudaErrors(cudaMemcpy(cells, d_cells, NUM_CELLS * sizeof(Cell), cudaMemcpyDeviceToHost));
-        //     // printf("Step number: %d\n", i);
-        //     draw_board(cells);
-        //     // write_to_file(cells, file);
-        // }
-        // printf("Step: %d ----------------------------------------------------------\n", i);
-        // draw_board(cells);
     }
+
     checkCudaErrors(cudaMemcpy(cells, d_cells, NUM_CELLS * sizeof(Cell), cudaMemcpyDeviceToHost));
     getLastCudaError("printGPU() execution failed\n");
     cudaFree(d_stateTemp);
@@ -285,7 +271,7 @@ void check_CUDA() // function to copy into GPU memory
     testGPU<<<1, 1>>>(); // gred size block size
     cudaDeviceSynchronize();
 }
-void run_CUDA(Cell *cells, int blocksize)
+void run_CUDA(Cell *cells, int blocksize, int cache_flag)
 {
     // Allocate memory on GPU
     Cell *d_cells;
@@ -294,11 +280,12 @@ void run_CUDA(Cell *cells, int blocksize)
     cudaDeviceSynchronize();
     getLastCudaError("printGPU() execution failed\n");
 
-    parallel_cuda(d_cells, cells, blocksize);
+    parallel_cuda(d_cells, cells, blocksize, cache_flag);
     // Free memory on GPU
     cudaFree(d_cells);
 }
-void get_cacheSize(int size) {
+void get_cacheSize(int size)
+{
     int deviceId;
     cudaGetDevice(&deviceId);
 
@@ -307,24 +294,26 @@ void get_cacheSize(int size) {
 
     int sharedMemorySize = deviceProps.sharedMemPerBlock;
 
-    printf("Max shared memory size per block: %d bytes\n", sharedMemorySize/size);
+    printf("Max shared memory size per block: %d bytes\n", sharedMemorySize / size);
 }
 int main(int argc, char *argv[])
 {
-  
-    
-    // if (argc < 2)
-    // {
-    //     printf("Not enough arguments!\n");
-    //     return 1;
-    // }
 
-    // int blocksize = atoi(argv[1]);
+    if (argc < 3)
+    {
+        printf("Not enough arguments!\n");
+        return 1;
+    }
+
+    int blocksize = atoi(argv[1]);
+    int cache_flag = atoi(argv[2]);
+
+    THREADS_PER_BLOCK = blocksize;
 
     // // ------------- Začetek inicializacije ------------- //
     // Definicija arraya s structi
     Cell *cells = (Cell *)malloc(NUM_CELLS * sizeof(*cells));
-    //get_cacheSize(sizeof(Cell));
+    // get_cacheSize(sizeof(Cell));
     init_grid(cells);
     // Določi začetno vrednost glede na tip celice
     init_state(cells);
@@ -337,7 +326,7 @@ int main(int argc, char *argv[])
     cudaEventRecord(start);
 
     // draw_board(cells);
-    run_CUDA(cells, THREADS_PER_BLOCK);
+    run_CUDA(cells, blocksize, cache_flag);
 
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -346,7 +335,7 @@ int main(int argc, char *argv[])
     cudaEventElapsedTime(&milliseconds, start, stop);
     printf("Elapsed time: %0.3f seconds \n", milliseconds / 1000);
 
-    draw_board(cells);
+    // draw_board(cells);
 
     // Free allocated memory
     free(cells);
